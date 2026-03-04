@@ -387,8 +387,11 @@ pre {
   position: relative;
   flex: 1;
   min-height: 0;
+  display: grid;
+  grid-template-columns: 56px 1fr;
 }
 
+.yaml-lines,
 .yaml-highlight,
 #yamlInput {
   margin: 0;
@@ -404,9 +407,19 @@ pre {
   font-family: inherit;
 }
 
+.yaml-lines {
+  grid-column: 1;
+  border-right: 1px solid var(--line);
+  color: var(--muted);
+  text-align: right;
+  user-select: none;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(180, 165, 147, 0.06) 0%, rgba(180, 165, 147, 0.02) 100%);
+}
+
 .yaml-highlight {
   position: absolute;
-  inset: 0;
+  inset: 0 0 0 56px;
   pointer-events: none;
   z-index: 1;
 }
@@ -417,7 +430,7 @@ pre {
 
 #yamlInput {
   position: absolute;
-  inset: 0;
+  inset: 0 0 0 56px;
   z-index: 2;
   color: transparent;
   caret-color: var(--ink);
@@ -506,6 +519,10 @@ pre {
   filter: saturate(1.08) brightness(1.06);
 }
 
+:root[data-theme="dark"] .yaml-lines {
+  background: linear-gradient(180deg, rgba(120, 138, 161, 0.08) 0%, rgba(120, 138, 161, 0.03) 100%);
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     --bg: #0e1116;
@@ -568,6 +585,10 @@ pre {
 
   :root:not([data-theme]) .yaml-highlight.hljs {
     filter: saturate(1.08) brightness(1.06);
+  }
+
+  :root:not([data-theme]) .yaml-lines {
+    background: linear-gradient(180deg, rgba(120, 138, 161, 0.08) 0%, rgba(120, 138, 161, 0.03) 100%);
   }
 }
 
@@ -735,11 +756,21 @@ pre {
 
   textarea,
   pre,
+  .yaml-lines,
   .yaml-highlight,
   #yamlInput {
     padding: 12px;
     font-size: 13px;
     line-height: 1.45;
+  }
+
+  .editor-wrap {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .yaml-highlight,
+  #yamlInput {
+    inset: 0 0 0 48px;
   }
 
   .editor-wrap {

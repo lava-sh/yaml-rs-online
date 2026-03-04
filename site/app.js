@@ -1,5 +1,6 @@
 const els = {
   input: document.getElementById("yamlInput"),
+  lineNumbers: document.getElementById("yamlLineNumbers"),
   highlight: document.getElementById("yamlHighlight"),
   output: document.getElementById("output"),
   split: document.getElementById("split"),
@@ -40,6 +41,7 @@ let isReady = false;
 let renderTimer;
 let highlightFrame = 0;
 let lastHighlightSource = "";
+let lastLineCount = 0;
 const copyTimers = new WeakMap();
 const HLJS_MAX_LENGTH = 12000;
 
@@ -101,6 +103,22 @@ function renderYamlHighlight() {
   els.highlight.innerHTML = `${escapeHtml(source)}\n`;
 }
 
+function renderYamlLineNumbers() {
+  if (!els.input || !els.lineNumbers) {
+    return;
+  }
+
+  const source = els.input.value.replace(/\r\n/g, "\n");
+  const lineCount = source.split("\n").length;
+  if (lineCount === lastLineCount) {
+    return;
+  }
+  lastLineCount = lineCount;
+
+  const lines = Array.from({ length: lineCount }, (_, idx) => String(idx + 1)).join("\n");
+  els.lineNumbers.textContent = `${lines}\n`;
+}
+
 function scheduleHighlight() {
   if (highlightFrame) {
     return;
@@ -108,16 +126,18 @@ function scheduleHighlight() {
   highlightFrame = window.requestAnimationFrame(() => {
     highlightFrame = 0;
     renderYamlHighlight();
+    renderYamlLineNumbers();
     syncYamlScroll();
   });
 }
 
 function syncYamlScroll() {
-  if (!els.input || !els.highlight) {
+  if (!els.input || !els.highlight || !els.lineNumbers) {
     return;
   }
   els.highlight.scrollTop = els.input.scrollTop;
   els.highlight.scrollLeft = els.input.scrollLeft;
+  els.lineNumbers.scrollTop = els.input.scrollTop;
 }
 
 function flashCopied(button) {
@@ -292,6 +312,7 @@ function initEvents() {
     localStorage.setItem(THEME_KEY, next);
     applyTheme(next);
     lastHighlightSource = "";
+    lastLineCount = 0;
     scheduleHighlight();
   });
 }
