@@ -40,22 +40,42 @@ async function renderYaml() {
 
 async function boot() {
   try {
-    const wheelResp = await fetch("./wheels/latest.txt", { cache: "no-store" });
-    if (!wheelResp.ok) {
-      throw new Error(`Failed to load wheels/latest.txt: HTTP ${wheelResp.status}`);
-    }
-    const wheelName = (await wheelResp.text()).trim();
-    if (!wheelName) {
-      throw new Error("wheels/latest.txt is empty");
-    }
-
     pyodide = await loadPyodide();
     await pyodide.loadPackage("micropip");
-    pyodide.globals.set("wheel_name", wheelName);
-    await pyodide.runPythonAsync(`
+    const wheelCandidates = [];
+    const wheelResp = await fetch("./wheels/latest.txt", { cache: "no-store" });
+    if (wheelResp.ok) {
+      const wheelName = (await wheelResp.text()).trim();
+      if (wheelName) {
+        wheelCandidates.push(wheelName);
+      }
+    }
+    wheelCandidates.push(
+      "yaml_rs.whl",
+      "yaml_rs-0.0.14-cp313-cp313-emscripten_4_0_9_wasm32.whl",
+      "yaml_rs-0.0.14-cp312-cp312-emscripten_3_1_58_wasm32.whl",
+    );
+    const uniqueCandidates = [...new Set(wheelCandidates)];
+    let installed = false;
+    let lastError = "";
+    for (const candidate of uniqueCandidates) {
+      try {
+        pyodide.globals.set("wheel_name", candidate);
+        await pyodide.runPythonAsync(`
 import micropip
 await micropip.install(f'./wheels/{wheel_name}')
 `);
+        installed = true;
+        break;
+      } catch (err) {
+        lastError = String(err);
+      }
+    }
+    if (!installed) {
+      throw new Error(
+        `Failed to install wheel from ./wheels (tried ${uniqueCandidates.length} candidates). Last error: ${lastError}`,
+      );
+    }
     ready = true;
     await renderYaml();
   } catch (err) {
