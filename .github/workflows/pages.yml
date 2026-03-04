@@ -34,7 +34,7 @@ jobs:
         uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021 # v14
         with:
           version: 4.0.9
-          actions-cache-folder: emsdk
+          no-cache: true
 
       - name: "Install build tooling (maturin)"
         run: uv pip install maturin --system

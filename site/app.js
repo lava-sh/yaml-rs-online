@@ -10,22 +10,16 @@ let pyodide;
 let ready = false;
 
 const parseCode = `
-from pprint import pformat, pprint
-
+from pprint import pformat
 import yaml_rs
-
-parsed = None
 
 try:
     parsed = yaml_rs.loads(yaml_input)
-    pformat(parsed, width=60, sort_dicts=False)
+    result = pformat(parsed, width=80, sort_dicts=False)
 except yaml_rs.YAMLDecodeError as exc:
-    print(f"YAML error: {exc}")
+    result = f"YAML error: {exc}"
 
-
-if parsed is not None:
-    pprint(parsed)
-
+result
 `;
 
 async function renderYaml() {
