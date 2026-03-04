@@ -38,7 +38,10 @@ const HLJS_DARK =
 let pyodide;
 let isReady = false;
 let renderTimer;
+let highlightFrame = 0;
+let lastHighlightSource = "";
 const copyTimers = new WeakMap();
+const HLJS_MAX_LENGTH = 12000;
 
 function escapeHtml(text) {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -72,6 +75,16 @@ function renderYamlHighlight() {
   }
 
   const source = els.input.value.replace(/\r\n/g, "\n");
+  if (source === lastHighlightSource) {
+    return;
+  }
+  lastHighlightSource = source;
+
+  if (source.length > HLJS_MAX_LENGTH) {
+    els.highlight.innerHTML = `${escapeHtml(source)}\n`;
+    return;
+  }
+
   if (window.hljs) {
     try {
       const highlighted = window.hljs.highlight(source, {
@@ -86,6 +99,17 @@ function renderYamlHighlight() {
   }
 
   els.highlight.innerHTML = `${escapeHtml(source)}\n`;
+}
+
+function scheduleHighlight() {
+  if (highlightFrame) {
+    return;
+  }
+  highlightFrame = window.requestAnimationFrame(() => {
+    highlightFrame = 0;
+    renderYamlHighlight();
+    syncYamlScroll();
+  });
 }
 
 function syncYamlScroll() {
@@ -216,15 +240,14 @@ function initEvents() {
   let dragging = false;
 
   els.input.addEventListener("input", () => {
-    renderYamlHighlight();
-    syncYamlScroll();
+    scheduleHighlight();
     clearTimeout(renderTimer);
     renderTimer = setTimeout(() => {
       void renderYaml();
     }, 130);
   });
 
-  els.input.addEventListener("scroll", syncYamlScroll);
+  els.input.addEventListener("scroll", syncYamlScroll, { passive: true });
 
   els.divider.addEventListener("pointerdown", (event) => {
     if (window.matchMedia("(max-width: 900px)").matches) {
@@ -263,16 +286,17 @@ function initEvents() {
   });
 
   els.themeToggleBtn?.addEventListener("click", () => {
-    const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    const current =
+      document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
     const next = current === "dark" ? "light" : "dark";
     localStorage.setItem(THEME_KEY, next);
     applyTheme(next);
-    renderYamlHighlight();
+    lastHighlightSource = "";
+    scheduleHighlight();
   });
 }
 
 initTheme();
 initEvents();
-renderYamlHighlight();
-syncYamlScroll();
+scheduleHighlight();
 void boot();
