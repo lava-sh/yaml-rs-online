@@ -8,6 +8,7 @@
   --line: rgba(130, 110, 89, 0.22);
   --muted: #6d675f;
   --left-width: 50%;
+  --top-height: 50%;
   --copy-bg: #f8f1e8;
   --copy-border: #cbbca9;
   --copy-text: #2d241d;
@@ -254,7 +255,7 @@ body::before {
 }
 
 .divider {
-  width: 10px;
+  width: 8px;
   cursor: col-resize;
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
@@ -263,6 +264,8 @@ body::before {
     linear-gradient(180deg, rgba(64, 102, 255, 0.18), rgba(17, 200, 220, 0.18));
   position: relative;
   flex: 0 0 auto;
+  touch-action: none;
+  z-index: 8;
 }
 
 .divider::before {
@@ -278,6 +281,29 @@ body::before {
   box-shadow:
     -3px 0 0 rgba(115, 121, 147, 0.55),
     3px 0 0 rgba(115, 121, 147, 0.55);
+}
+
+.divider::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: -6px;
+  right: -6px;
+}
+
+.divider:hover {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+body.is-resizing .panel-left,
+body.is-resizing .panel-right {
+  pointer-events: none;
+}
+
+body.is-resizing .divider {
+  pointer-events: auto;
 }
 
 .panel-head {
@@ -708,6 +734,14 @@ pre {
   .panel-left,
   .panel-right {
     width: 100%;
+  }
+
+  .panel-left {
+    height: var(--top-height);
+  }
+
+  .panel-right {
+    height: calc(100% - var(--top-height));
   }
 
   .panel {

@@ -192,8 +192,17 @@ async function copyText(value, button) {
   flashCopied(button);
 }
 
-function setSplitFromClientX(clientX) {
+function setSplitFromPointer(clientX, clientY) {
   const rect = els.split.getBoundingClientRect();
+  const isVertical = window.matchMedia("(max-width: 900px)").matches;
+
+  if (isVertical) {
+    const raw = ((clientY - rect.top) / rect.height) * 100;
+    const clamped = Math.max(20, Math.min(80, raw));
+    document.documentElement.style.setProperty("--top-height", `${clamped}%`);
+    return;
+  }
+
   const raw = ((clientX - rect.left) / rect.width) * 100;
   const clamped = Math.max(20, Math.min(80, raw));
   document.documentElement.style.setProperty("--left-width", `${clamped}%`);
@@ -302,33 +311,82 @@ function initEvents() {
 
   els.input.addEventListener("scroll", syncYamlScroll, { passive: true });
 
-  els.divider.addEventListener("pointerdown", (event) => {
-    if (window.matchMedia("(max-width: 900px)").matches) {
-      return;
-    }
+  const startDrag = (clientX, clientY) => {
     dragging = true;
-    els.divider.setPointerCapture(event.pointerId);
-    setSplitFromClientX(event.clientX);
-  });
+    document.body.style.userSelect = "none";
+    document.body.classList.add("is-resizing");
+    setSplitFromPointer(clientX, clientY);
+  };
 
-  els.divider.addEventListener("pointermove", (event) => {
+  const moveDrag = (clientX, clientY) => {
     if (!dragging) {
       return;
     }
-    setSplitFromClientX(event.clientX);
-  });
+    setSplitFromPointer(clientX, clientY);
+  };
 
-  els.divider.addEventListener("pointerup", (event) => {
+  const stopDrag = () => {
     if (!dragging) {
       return;
     }
     dragging = false;
-    els.divider.releasePointerCapture(event.pointerId);
+    document.body.style.userSelect = "";
+    document.body.classList.remove("is-resizing");
+  };
+
+  els.divider.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    startDrag(event.clientX, event.clientY);
   });
 
-  els.divider.addEventListener("pointercancel", () => {
-    dragging = false;
+  window.addEventListener("pointermove", (event) => {
+    moveDrag(event.clientX, event.clientY);
   });
+  window.addEventListener("pointerup", stopDrag);
+  window.addEventListener("pointercancel", stopDrag);
+
+  els.divider.addEventListener("mousedown", (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    startDrag(event.clientX, event.clientY);
+  });
+
+  window.addEventListener("mousemove", (event) => {
+    moveDrag(event.clientX, event.clientY);
+  });
+  window.addEventListener("mouseup", stopDrag);
+
+  els.divider.addEventListener(
+    "touchstart",
+    (event) => {
+      const touch = event.touches[0];
+      if (!touch) {
+        return;
+      }
+      event.preventDefault();
+      startDrag(touch.clientX, touch.clientY);
+    },
+    { passive: false },
+  );
+
+  window.addEventListener(
+    "touchmove",
+    (event) => {
+      const touch = event.touches[0];
+      if (!touch) {
+        return;
+      }
+      if (dragging) {
+        event.preventDefault();
+      }
+      moveDrag(touch.clientX, touch.clientY);
+    },
+    { passive: false },
+  );
+  window.addEventListener("touchend", stopDrag);
+  window.addEventListener("touchcancel", stopDrag);
 
   els.copyYamlBtn?.addEventListener("click", () => {
     void copyText(els.input.value, els.copyYamlBtn);
