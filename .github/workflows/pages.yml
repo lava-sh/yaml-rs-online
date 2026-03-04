@@ -50,6 +50,7 @@ jobs:
           TOOLCHAIN="$(rustup show active-toolchain | cut -d' ' -f1)"
           rustup target add wasm32-unknown-emscripten --toolchain "${TOOLCHAIN}"
           maturin build --release --target wasm32-unknown-emscripten -i python3.13
+          mkdir -p "$GITHUB_WORKSPACE/site/wheels"
           cp target/wheels/*.whl "$GITHUB_WORKSPACE/site/wheels/yaml_rs.whl"
 
       - name: "Upload Pages artifact"
