@@ -39,7 +39,7 @@ jobs:
           version: 4.0.9
 
       - name: "Install build tooling (maturin)"
-        run: uv pip install maturin
+        run: uv pip install maturin --system
 
       - name: "Build yaml-rs wheel for Pyodide"
         shell: bash
