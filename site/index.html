@@ -1,225 +1,73 @@
 <!doctype html>
 <html lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>yaml-rs online</title>
-    <style>
-        :root {
-            --bg: #f7f5f2;
-            --panel: #ffffff;
-            --ink: #1e1a17;
-            --line: #ded7ce;
-            --muted: #7e766f;
-            --left-width: 50%;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
-            color: var(--ink);
-            background: radial-gradient(circle at 10% -10%, #f6ddca 0%, rgba(246, 221, 202, 0) 45%),
-            radial-gradient(circle at 100% 10%, #e7e0f2 0%, rgba(231, 224, 242, 0) 35%),
-            var(--bg);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .frame {
-            max-width: 1200px;
-            margin: 0 auto;
-            border: 1px solid var(--line);
-            background: var(--panel);
-            box-shadow: 0 12px 28px rgba(17, 10, 6, 0.08);
-            border-radius: 16px;
-            overflow: hidden;
-        }
-
-        .head {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--line);
-            display: flex;
-            justify-content: center;
-            background: linear-gradient(90deg, #fff 0%, #fff9f4 100%);
-        }
-
-        .head-inner {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            justify-content: center;
-        }
-
-        .brand {
-            font-size: 20px;
-            font-weight: 400;
-            letter-spacing: 0.08em;
-            text-transform: lowercase;
-            color: var(--ink);
-            line-height: 1;
-        }
-
-        .links {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .link {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            color: var(--ink);
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .link:hover {
-            text-decoration: underline;
-        }
-
-        .icon {
-            width: 16px;
-            height: 16px;
-            display: inline-block;
-        }
-
-        .split {
-            display: flex;
-            min-height: 72vh;
-            width: 100%;
-        }
-
-        .panel {
-            display: flex;
-            flex-direction: column;
-            min-height: 360px;
-            min-width: 220px;
-        }
-
-        .panel-left {
-            width: var(--left-width);
-        }
-
-        .panel-right {
-            width: calc(100% - var(--left-width));
-        }
-
-        .divider {
-            width: 10px;
-            cursor: col-resize;
-            border-left: 1px solid var(--line);
-            border-right: 1px solid var(--line);
-            background: linear-gradient(180deg, #faf7f3 0%, #f1ece5 100%);
-            position: relative;
-            flex: 0 0 auto;
-        }
-
-        .divider::before {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 2px;
-            height: 42px;
-            background: #c9c1b8;
-            border-radius: 2px;
-            box-shadow: -3px 0 0 #d8d1c8, 3px 0 0 #d8d1c8;
-        }
-
-        .label {
-            margin: 0;
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--line);
-            font-size: 12px;
-            letter-spacing: 0.09em;
-            text-transform: uppercase;
-            color: var(--muted);
-            text-align: center;
-        }
-
-        textarea, pre {
-            margin: 0;
-            border: 0;
-            background: transparent;
-            padding: 14px;
-            font-size: 14px;
-            line-height: 1.45;
-            width: 100%;
-            height: 100%;
-            min-height: 0;
-            flex: 1;
-            overflow: auto;
-            color: var(--ink);
-            white-space: pre;
-        }
-
-        textarea {
-            resize: none;
-            outline: none;
-        }
-
-        .err {
-            color: #b42723;
-        }
-
-        @media (max-width: 900px) {
-            .split {
-                flex-direction: column;
-            }
-
-            .panel-left,
-            .panel-right {
-                width: 100%;
-            }
-
-            .divider {
-                width: 100%;
-                height: 8px;
-                cursor: row-resize;
-                border-left: 0;
-                border-right: 0;
-                border-top: 1px solid var(--line);
-                border-bottom: 1px solid var(--line);
-            }
-
-            .divider::before {
-                width: 40px;
-                height: 2px;
-                box-shadow: 0 -3px 0 #d8d1c8, 0 3px 0 #d8d1c8;
-            }
-        }
-    </style>
-</head>
-<body>
-<main class="frame">
-    <header class="head">
+    <link
+      rel="icon"
+      href="https://avatars.githubusercontent.com/u/223430533?s=400&u=0377eeb0ae405c2ff4c719f650c36b0e699dedd4&v=4"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css"
+    />
+  </head>
+  <body>
+    <main class="frame">
+      <header class="head">
         <div class="head-inner">
-            <span class="brand">yaml-rs</span>
-            <div class="links">
-                <a class="link" href="https://github.com/lava-sh/yaml-rs" target="_blank" rel="noreferrer noopener">
-                    <img class="icon" src="https://cdn.simpleicons.org/github/1e1a17" alt="GitHub"/>
-                    <span>GitHub</span>
-                </a>
-                <a class="link" href="https://pypi.org/project/yaml-rs/" target="_blank" rel="noreferrer noopener">
-                    <img class="icon" src="https://cdn.simpleicons.org/pypi/3775A9" alt="PyPI"/>
-                    <span>PyPI</span>
-                </a>
-            </div>
+          <span class="brand">yaml-rs</span>
+          <div class="links">
+            <a
+              class="link"
+              href="https://github.com/lava-sh/yaml-rs"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <img class="icon" src="https://cdn.simpleicons.org/github/1e1a17" alt="GitHub" />
+              <span>GitHub</span>
+            </a>
+            <a
+              class="link"
+              href="https://pypi.org/project/yaml-rs/"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <img class="icon" src="https://cdn.simpleicons.org/pypi/3775A9" alt="PyPI" />
+              <span>PyPI</span>
+            </a>
+          </div>
         </div>
-    </header>
+      </header>
 
-    <section id="split" class="split">
+      <section id="split" class="split">
         <article class="panel panel-left">
+          <div class="panel-head">
             <h2 class="label">YAML</h2>
-        <textarea id="yamlInput"># Paste YAML here:
+            <button
+              id="copyYamlBtn"
+              class="copy-btn"
+              type="button"
+              aria-label="Copy YAML"
+              title="Copy YAML"
+            >
+              <svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z"
+                />
+              </svg>
+              <svg class="check-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 16.2-3.5-3.6L4 14l5 5 11-11-1.5-1.4L9 16.2Z" />
+              </svg>
+            </button>
+          </div>
+          <label for="yamlInput" class="sr-only">YAML input</label>
+          <div class="editor-wrap">
+            <pre id="yamlHighlight" class="hljs yaml-highlight" aria-hidden="true"></pre>
+            <textarea id="yamlInput">
+# Paste YAML here:
 name: lava
 items:
   - 1
@@ -229,129 +77,47 @@ items:
 meta:
   ratio: 12.5
   tag: null
-</textarea>
+</textarea
+            >
+          </div>
         </article>
 
-        <div id="divider" class="divider" role="separator" aria-orientation="vertical" aria-label="Resize panels"></div>
+        <div
+          id="divider"
+          class="divider"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize panels"
+        ></div>
 
         <article class="panel panel-right">
+          <div class="panel-head">
             <h2 class="label">Python</h2>
-            <pre id="output"></pre>
+            <button
+              id="copyOutputBtn"
+              class="copy-btn"
+              type="button"
+              aria-label="Copy output"
+              title="Copy output"
+            >
+              <svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z"
+                />
+              </svg>
+              <svg class="check-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 16.2-3.5-3.6L4 14l5 5 11-11-1.5-1.4L9 16.2Z" />
+              </svg>
+            </button>
+          </div>
+          <pre id="output"></pre>
         </article>
-    </section>
-</main>
+      </section>
+    </main>
 
-<script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"></script>
-<script>
-    const inputEl = document.getElementById("yamlInput");
-    const outputEl = document.getElementById("output");
-    const splitEl = document.getElementById("split");
-    const dividerEl = document.getElementById("divider");
-
-    let pyodide;
-    let ready = false;
-
-    const parseCode = `
-import pprint
-import yaml_rs
-
-try:
-    parsed = yaml_rs.loads(yaml_input)
-    pprint.pformat(parsed, width=80, sort_dicts=False)
-except yaml_rs.YAMLDecodeError as exc:
-    f"YAML error: {exc}"
-`;
-
-    async function renderYaml() {
-      if (!ready) {
-        return;
-      }
-
-      const text = inputEl.value;
-      pyodide.globals.set("yaml_input", text);
-
-      try {
-        const result = await pyodide.runPythonAsync(parseCode);
-        outputEl.classList.remove("err");
-        outputEl.textContent = result;
-      } catch (err) {
-        outputEl.classList.add("err");
-        outputEl.textContent = String(err);
-      }
-    }
-
-    async function boot() {
-      try {
-        const wheelResp = await fetch("./wheels/latest.txt", { cache: "no-store" });
-        if (!wheelResp.ok) {
-          throw new Error(`Failed to load wheels/latest.txt: HTTP ${wheelResp.status}`);
-        }
-        const wheelName = (await wheelResp.text()).trim();
-        if (!wheelName) {
-          throw new Error("wheels/latest.txt is empty");
-        }
-
-        pyodide = await loadPyodide();
-        await pyodide.loadPackage("micropip");
-        pyodide.globals.set("wheel_name", wheelName);
-        await pyodide.runPythonAsync(`
-import micropip
-await micropip.install(f'./wheels/{wheel_name}')
-`);
-        ready = true;
-        await renderYaml();
-      } catch (err) {
-        outputEl.classList.add("err");
-        outputEl.textContent = String(err);
-      }
-    }
-
-    let timer;
-    inputEl.addEventListener("input", () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        void renderYaml();
-      }, 140);
-    });
-
-    let dragging = false;
-
-    function setSplitFromClientX(clientX) {
-      const rect = splitEl.getBoundingClientRect();
-      const raw = ((clientX - rect.left) / rect.width) * 100;
-      const clamped = Math.max(20, Math.min(80, raw));
-      document.documentElement.style.setProperty("--left-width", clamped + "%");
-    }
-
-    dividerEl.addEventListener("pointerdown", (event) => {
-      if (window.matchMedia("(max-width: 900px)").matches) {
-        return;
-      }
-      dragging = true;
-      dividerEl.setPointerCapture(event.pointerId);
-      setSplitFromClientX(event.clientX);
-    });
-
-    dividerEl.addEventListener("pointermove", (event) => {
-      if (!dragging) {
-        return;
-      }
-      setSplitFromClientX(event.clientX);
-    });
-
-    dividerEl.addEventListener("pointerup", (event) => {
-      if (!dragging) {
-        return;
-      }
-      dragging = false;
-      dividerEl.releasePointerCapture(event.pointerId);
-    });
-
-    dividerEl.addEventListener("pointercancel", () => {
-      dragging = false;
-    });
-
-    void boot();
-</script>
-</body>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/languages/yaml.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
 </html>
