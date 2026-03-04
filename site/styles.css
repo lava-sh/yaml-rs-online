@@ -250,6 +250,7 @@ body::before {
 
 .panel-right {
   width: calc(100% - var(--left-width));
+  position: relative;
 }
 
 .divider {
@@ -295,6 +296,43 @@ body::before {
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--muted);
+}
+
+.py-status {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(13, 17, 24, 0.12);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 140ms ease;
+}
+
+.panel-right.is-busy .py-status {
+  opacity: 1;
+  visibility: visible;
+}
+
+.py-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid color-mix(in srgb, var(--muted) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 720ms linear infinite;
 }
 
 .copy-btn {
@@ -788,6 +826,10 @@ pre {
     transform: none;
   }
 
+  .py-spinner {
+    animation: none;
+  }
+
   .frame,
   .link,
   .copy-btn,
@@ -827,5 +869,11 @@ pre {
   }
   100% {
     box-shadow: 0 0 0 10px rgba(78, 161, 68, 0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }

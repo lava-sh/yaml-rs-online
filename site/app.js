@@ -3,6 +3,8 @@ const els = {
   lineNumbers: document.getElementById("yamlLineNumbers"),
   highlight: document.getElementById("yamlHighlight"),
   output: document.getElementById("output"),
+  pyStatus: document.getElementById("pyStatus"),
+  pyStatusText: document.getElementById("pyStatusText"),
   split: document.getElementById("split"),
   divider: document.getElementById("divider"),
   copyYamlBtn: document.getElementById("copyYamlBtn"),
@@ -42,6 +44,8 @@ let renderTimer;
 let highlightFrame = 0;
 let lastHighlightSource = "";
 let lastLineCount = 0;
+let renderSeq = 0;
+let pendingRenders = 0;
 const copyTimers = new WeakMap();
 const HLJS_MAX_LENGTH = 12000;
 
@@ -58,6 +62,19 @@ function applyTheme(theme) {
   }
   if (els.hljsTheme) {
     els.hljsTheme.href = theme === "dark" ? HLJS_DARK : HLJS_LIGHT;
+  }
+}
+
+function setBusy(active, label = "Working") {
+  const panel = els.output?.closest(".panel-right");
+  if (panel) {
+    panel.classList.toggle("is-busy", active);
+  }
+  if (els.pyStatus) {
+    els.pyStatus.setAttribute("aria-hidden", active ? "false" : "true");
+  }
+  if (els.pyStatusText) {
+    els.pyStatusText.textContent = label;
   }
 }
 
@@ -187,15 +204,28 @@ async function renderYaml() {
     return;
   }
 
+  const seq = ++renderSeq;
+  pendingRenders += 1;
+  setBusy(true, "Parsing");
+
   pyodide.globals.set("yaml_input", els.input.value);
 
   try {
     const result = await pyodide.runPythonAsync(PARSE_CODE);
+    if (seq !== renderSeq) {
+      return;
+    }
     els.output.classList.remove("err");
     els.output.textContent = result;
   } catch (err) {
+    if (seq !== renderSeq) {
+      return;
+    }
     els.output.classList.add("err");
     els.output.textContent = String(err);
+  } finally {
+    pendingRenders = Math.max(0, pendingRenders - 1);
+    setBusy(pendingRenders > 0, "Parsing");
   }
 }
 
@@ -238,6 +268,7 @@ await micropip.install(f'./wheels/{wheel_name}')
 }
 
 async function boot() {
+  setBusy(true, "Loading Pyodide");
   try {
     pyodide = await loadPyodide();
     await pyodide.loadPackage("micropip");
@@ -249,6 +280,8 @@ async function boot() {
       els.output.classList.add("err");
       els.output.textContent = String(err);
     }
+  } finally {
+    setBusy(pendingRenders > 0, pendingRenders > 0 ? "Parsing" : "Loading Pyodide");
   }
 }
 
