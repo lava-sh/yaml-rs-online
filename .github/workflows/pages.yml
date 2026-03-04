@@ -33,7 +33,7 @@ jobs:
       - name: "Setup Emscripten"
         uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021 # v14
         with:
-          version: 4.0.9
+          version: 3.1.58
           actions-cache-folder: emsdk
 
       - name: "Install build tooling (maturin)"
@@ -51,7 +51,7 @@ jobs:
           rustup target add wasm32-unknown-emscripten --toolchain "${TOOLCHAIN}"
           maturin build --release --target wasm32-unknown-emscripten -i python3.12
           mkdir -p "$GITHUB_WORKSPACE/site/wheels"
-          cp target/wheels/*.whl "$GITHUB_WORKSPACE/site/wheels/yaml_rs-0.0.14-cp312-cp312-emscripten_4_0_9_wasm32.whl"
+          cp target/wheels/*.whl "$GITHUB_WORKSPACE/site/wheels/yaml_rs-0.0.14-cp312-cp312-emscripten_3_1_58_wasm32.whl"
 
       - name: "Upload Pages artifact"
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0

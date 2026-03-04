@@ -283,7 +283,7 @@ repr(parsed)
         await pyodide.loadPackage("micropip");
         await pyodide.runPythonAsync(`
 import micropip
-await micropip.install('./wheels/yaml_rs-0.0.14-cp312-cp312-emscripten_4_0_9_wasm32.whl')
+await micropip.install('./wheels/yaml_rs-0.0.14-cp312-cp312-emscripten_3_1_58_wasm32.whl')
 `);
         ready = true;
         await renderYaml();
