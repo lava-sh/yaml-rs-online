@@ -3,13 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>yaml-rs online</title>
+    <title>yaml-rs</title>
     <link
       rel="icon"
       href="https://avatars.githubusercontent.com/u/223430533?s=400&u=0377eeb0ae405c2ff4c719f650c36b0e699dedd4&v=4"
     />
     <link rel="stylesheet" href="./styles.css" />
     <link
+      id="hljsTheme"
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
@@ -18,27 +19,52 @@
     <main class="frame">
       <header class="head">
         <div class="head-inner">
-          <span class="brand">yaml-rs</span>
-          <div class="links">
-            <a
-              class="link"
-              href="https://github.com/lava-sh/yaml-rs"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              <img class="icon" src="https://cdn.simpleicons.org/github/1e1a17" alt="GitHub" />
-              <span>GitHub</span>
-            </a>
-            <a
-              class="link"
-              href="https://pypi.org/project/yaml-rs/"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              <img class="icon" src="https://cdn.simpleicons.org/pypi/3775A9" alt="PyPI" />
-              <span>PyPI</span>
-            </a>
+          <div class="head-main">
+            <span class="brand">yaml-rs</span>
+            <span class="head-sep" aria-hidden="true">|</span>
+            <div class="links">
+              <a
+                class="link"
+                href="https://github.com/lava-sh/yaml-rs"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <img class="icon" src="https://cdn.simpleicons.org/github/1e1a17" alt="" aria-hidden="true" />
+                <span>GitHub</span>
+              </a>
+              <span class="link-sep" aria-hidden="true">|</span>
+              <a
+                class="link"
+                href="https://pypi.org/project/yaml-rs/"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <img class="icon" src="https://cdn.simpleicons.org/pypi/3775A9" alt="" aria-hidden="true" />
+                <span>PyPI</span>
+              </a>
+            </div>
           </div>
+          <button
+            id="themeToggleBtn"
+            class="theme-btn"
+            type="button"
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            <span class="theme-track" aria-hidden="true">
+              <svg class="theme-icon theme-sun" viewBox="0 0 24 24">
+                <path
+                  d="M6.76 4.84 5.35 3.43 3.93 4.84l1.41 1.42 1.42-1.42Zm10.48 0 1.42 1.42 1.41-1.42-1.41-1.41-1.42 1.41ZM12 5a1 1 0 0 0 1-1V2h-2v2a1 1 0 0 0 1 1Zm0 14a1 1 0 0 0-1 1v2h2v-2a1 1 0 0 0-1-1Zm7-7a1 1 0 0 0 1 1h2v-2h-2a1 1 0 0 0-1 1ZM5 12a1 1 0 0 0-1-1H2v2h2a1 1 0 0 0 1-1Zm7-5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"
+                />
+              </svg>
+              <svg class="theme-icon theme-moon" viewBox="0 0 24 24">
+                <path
+                  d="M20.74 15.55A9 9 0 0 1 8.45 3.26a1 1 0 0 0-1.2-1.38A11 11 0 1 0 22.12 16.75a1 1 0 0 0-1.38-1.2Z"
+                />
+              </svg>
+              <span class="theme-thumb"></span>
+            </span>
+          </button>
         </div>
       </header>
 
@@ -68,15 +94,19 @@
             <pre id="yamlHighlight" class="hljs yaml-highlight" aria-hidden="true"></pre>
             <textarea id="yamlInput">
 # Paste YAML here:
-name: lava
-items:
-  - 1
-  - 2
-  - deep:
-      enabled: true
-meta:
-  ratio: 12.5
-  tag: null
+app:
+  local: true
+  logging:
+    level: INFO
+  version: 1.7
+  release-date: 2015-07-09
+
+  mysql:
+    user: "user"
+    password: "password"
+    host: "127.0.0.1"
+    port: 3306
+    db_name: "database"
 </textarea
             >
           </div>

@@ -1,15 +1,16 @@
-const inputEl = document.getElementById("yamlInput");
-const yamlHighlightEl = document.getElementById("yamlHighlight");
-const outputEl = document.getElementById("output");
-const splitEl = document.getElementById("split");
-const dividerEl = document.getElementById("divider");
-const copyYamlBtn = document.getElementById("copyYamlBtn");
-const copyOutputBtn = document.getElementById("copyOutputBtn");
+const els = {
+  input: document.getElementById("yamlInput"),
+  highlight: document.getElementById("yamlHighlight"),
+  output: document.getElementById("output"),
+  split: document.getElementById("split"),
+  divider: document.getElementById("divider"),
+  copyYamlBtn: document.getElementById("copyYamlBtn"),
+  copyOutputBtn: document.getElementById("copyOutputBtn"),
+  themeToggleBtn: document.getElementById("themeToggleBtn"),
+  hljsTheme: document.getElementById("hljsTheme"),
+};
 
-let pyodide;
-let ready = false;
-
-const parseCode = `
+const PARSE_CODE = `
 from pprint import pformat
 import yaml_rs
 
@@ -22,182 +23,256 @@ except yaml_rs.YAMLDecodeError as exc:
 result
 `;
 
-async function renderYaml() {
-  if (!ready) {
+const WHEEL_CANDIDATES_FALLBACK = [
+  "yaml_rs.whl",
+  "yaml_rs-0.0.14-cp313-cp313-emscripten_4_0_9_wasm32.whl",
+  "yaml_rs-0.0.14-cp312-cp312-emscripten_3_1_58_wasm32.whl",
+];
+
+const THEME_KEY = "yaml-rs-theme";
+const HLJS_LIGHT =
+  "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css";
+const HLJS_DARK =
+  "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github-dark.min.css";
+
+let pyodide;
+let isReady = false;
+let renderTimer;
+const copyTimers = new WeakMap();
+
+function escapeHtml(text) {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  if (els.themeToggleBtn) {
+    const next = theme === "dark" ? "light" : "dark";
+    els.themeToggleBtn.setAttribute("aria-label", `Switch to ${next} theme`);
+    els.themeToggleBtn.setAttribute("title", `Switch to ${next} theme`);
+  }
+  if (els.hljsTheme) {
+    els.hljsTheme.href = theme === "dark" ? HLJS_DARK : HLJS_LIGHT;
+  }
+}
+
+function initTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  if (savedTheme === "dark" || savedTheme === "light") {
+    applyTheme(savedTheme);
+    return;
+  }
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  applyTheme(prefersDark ? "dark" : "light");
+}
+
+function renderYamlHighlight() {
+  if (!els.input || !els.highlight) {
     return;
   }
 
-  const text = inputEl.value;
-  pyodide.globals.set("yaml_input", text);
+  const source = els.input.value.replace(/\r\n/g, "\n");
+  if (window.hljs) {
+    try {
+      const highlighted = window.hljs.highlight(source, {
+        language: "yaml",
+        ignoreIllegals: true,
+      }).value;
+      els.highlight.innerHTML = `${highlighted}\n`;
+      return;
+    } catch {
+      // fallback below
+    }
+  }
+
+  els.highlight.innerHTML = `${escapeHtml(source)}\n`;
+}
+
+function syncYamlScroll() {
+  if (!els.input || !els.highlight) {
+    return;
+  }
+  els.highlight.scrollTop = els.input.scrollTop;
+  els.highlight.scrollLeft = els.input.scrollLeft;
+}
+
+function flashCopied(button) {
+  button.classList.add("copied");
+  const activeTimer = copyTimers.get(button);
+  if (activeTimer) {
+    clearTimeout(activeTimer);
+  }
+  const timerId = setTimeout(() => {
+    button.classList.remove("copied");
+    copyTimers.delete(button);
+  }, 900);
+  copyTimers.set(button, timerId);
+}
+
+async function copyText(value, button) {
+  const text = value ?? "";
 
   try {
-    const result = await pyodide.runPythonAsync(parseCode);
-    outputEl.classList.remove("err");
-    outputEl.textContent = result;
-  } catch (err) {
-    outputEl.classList.add("err");
-    outputEl.textContent = String(err);
+    await navigator.clipboard.writeText(text);
+    flashCopied(button);
+    return;
+  } catch {
+    // fallback below
   }
+
+  const helper = document.createElement("textarea");
+  helper.value = text;
+  helper.style.position = "fixed";
+  helper.style.left = "-9999px";
+  document.body.appendChild(helper);
+  helper.select();
+  document.execCommand("copy");
+  helper.remove();
+  flashCopied(button);
+}
+
+function setSplitFromClientX(clientX) {
+  const rect = els.split.getBoundingClientRect();
+  const raw = ((clientX - rect.left) / rect.width) * 100;
+  const clamped = Math.max(20, Math.min(80, raw));
+  document.documentElement.style.setProperty("--left-width", `${clamped}%`);
+}
+
+async function renderYaml() {
+  if (!isReady || !pyodide || !els.input || !els.output) {
+    return;
+  }
+
+  pyodide.globals.set("yaml_input", els.input.value);
+
+  try {
+    const result = await pyodide.runPythonAsync(PARSE_CODE);
+    els.output.classList.remove("err");
+    els.output.textContent = result;
+  } catch (err) {
+    els.output.classList.add("err");
+    els.output.textContent = String(err);
+  }
+}
+
+async function installWheel() {
+  const candidates = [];
+
+  try {
+    const response = await fetch("./wheels/latest.txt", { cache: "no-store" });
+    if (response.ok) {
+      const wheelName = (await response.text()).trim();
+      if (wheelName) {
+        candidates.push(wheelName);
+      }
+    }
+  } catch {
+    // ignore and use fallbacks
+  }
+
+  candidates.push(...WHEEL_CANDIDATES_FALLBACK);
+
+  const uniqueCandidates = [...new Set(candidates)];
+  let lastError = "unknown error";
+
+  for (const wheel of uniqueCandidates) {
+    try {
+      pyodide.globals.set("wheel_name", wheel);
+      await pyodide.runPythonAsync(`
+import micropip
+await micropip.install(f'./wheels/{wheel_name}')
+`);
+      return;
+    } catch (err) {
+      lastError = String(err);
+    }
+  }
+
+  throw new Error(
+    `Failed to install wheel from ./wheels (tried ${uniqueCandidates.length} candidates). Last error: ${lastError}`,
+  );
 }
 
 async function boot() {
   try {
     pyodide = await loadPyodide();
     await pyodide.loadPackage("micropip");
-    const wheelCandidates = [];
-    const wheelResp = await fetch("./wheels/latest.txt", { cache: "no-store" });
-    if (wheelResp.ok) {
-      const wheelName = (await wheelResp.text()).trim();
-      if (wheelName) {
-        wheelCandidates.push(wheelName);
-      }
-    }
-    wheelCandidates.push(
-      "yaml_rs.whl",
-      "yaml_rs-0.0.14-cp313-cp313-emscripten_4_0_9_wasm32.whl",
-      "yaml_rs-0.0.14-cp312-cp312-emscripten_3_1_58_wasm32.whl",
-    );
-    const uniqueCandidates = [...new Set(wheelCandidates)];
-    let installed = false;
-    let lastError = "";
-    for (const candidate of uniqueCandidates) {
-      try {
-        pyodide.globals.set("wheel_name", candidate);
-        await pyodide.runPythonAsync(`
-import micropip
-await micropip.install(f'./wheels/{wheel_name}')
-`);
-        installed = true;
-        break;
-      } catch (err) {
-        lastError = String(err);
-      }
-    }
-    if (!installed) {
-      throw new Error(
-        `Failed to install wheel from ./wheels (tried ${uniqueCandidates.length} candidates). Last error: ${lastError}`,
-      );
-    }
-    ready = true;
+    await installWheel();
+    isReady = true;
     await renderYaml();
   } catch (err) {
-    outputEl.classList.add("err");
-    outputEl.textContent = String(err);
+    if (els.output) {
+      els.output.classList.add("err");
+      els.output.textContent = String(err);
+    }
   }
 }
 
-let timer;
-const copyFlashTimers = new WeakMap();
-
-if (window.hljs && window.hljsDefineYaml) {
-  window.hljs.registerLanguage("yaml", window.hljsDefineYaml);
-}
-
-function escapeHtml(text) {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
-function renderYamlHighlight() {
-  const source = inputEl.value.replace(/\r\n/g, "\n");
-  if (window.hljs) {
-    const highlighted = window.hljs.highlight(source, { language: "yaml", ignoreIllegals: true }).value;
-    yamlHighlightEl.innerHTML = `${highlighted}\n`;
+function initEvents() {
+  if (!els.input || !els.output || !els.divider || !els.split) {
     return;
   }
-  yamlHighlightEl.innerHTML = `${escapeHtml(source)}\n`;
+
+  let dragging = false;
+
+  els.input.addEventListener("input", () => {
+    renderYamlHighlight();
+    syncYamlScroll();
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(() => {
+      void renderYaml();
+    }, 130);
+  });
+
+  els.input.addEventListener("scroll", syncYamlScroll);
+
+  els.divider.addEventListener("pointerdown", (event) => {
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      return;
+    }
+    dragging = true;
+    els.divider.setPointerCapture(event.pointerId);
+    setSplitFromClientX(event.clientX);
+  });
+
+  els.divider.addEventListener("pointermove", (event) => {
+    if (!dragging) {
+      return;
+    }
+    setSplitFromClientX(event.clientX);
+  });
+
+  els.divider.addEventListener("pointerup", (event) => {
+    if (!dragging) {
+      return;
+    }
+    dragging = false;
+    els.divider.releasePointerCapture(event.pointerId);
+  });
+
+  els.divider.addEventListener("pointercancel", () => {
+    dragging = false;
+  });
+
+  els.copyYamlBtn?.addEventListener("click", () => {
+    void copyText(els.input.value, els.copyYamlBtn);
+  });
+
+  els.copyOutputBtn?.addEventListener("click", () => {
+    void copyText(els.output.textContent, els.copyOutputBtn);
+  });
+
+  els.themeToggleBtn?.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    const next = current === "dark" ? "light" : "dark";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+    renderYamlHighlight();
+  });
 }
 
-function syncYamlScroll() {
-  yamlHighlightEl.scrollTop = inputEl.scrollTop;
-  yamlHighlightEl.scrollLeft = inputEl.scrollLeft;
-}
-
-inputEl.addEventListener("input", () => {
-  renderYamlHighlight();
-  syncYamlScroll();
-  clearTimeout(timer);
-  timer = setTimeout(() => {
-    void renderYaml();
-  }, 140);
-});
-inputEl.addEventListener("scroll", syncYamlScroll);
-
-let dragging = false;
-
-function flashCopied(button) {
-  button.classList.add("copied");
-  const activeTimer = copyFlashTimers.get(button);
-  if (activeTimer) {
-    clearTimeout(activeTimer);
-  }
-  const timerId = setTimeout(() => {
-    button.classList.remove("copied");
-    copyFlashTimers.delete(button);
-  }, 900);
-  copyFlashTimers.set(button, timerId);
-}
-
-async function copyText(text, button) {
-  const value = text ?? "";
-  try {
-    await navigator.clipboard.writeText(value);
-    flashCopied(button);
-  } catch {
-    const helper = document.createElement("textarea");
-    helper.value = value;
-    helper.style.position = "fixed";
-    helper.style.left = "-9999px";
-    document.body.appendChild(helper);
-    helper.select();
-    document.execCommand("copy");
-    helper.remove();
-    flashCopied(button);
-  }
-}
-
-function setSplitFromClientX(clientX) {
-  const rect = splitEl.getBoundingClientRect();
-  const raw = ((clientX - rect.left) / rect.width) * 100;
-  const clamped = Math.max(20, Math.min(80, raw));
-  document.documentElement.style.setProperty("--left-width", clamped + "%");
-}
-
-dividerEl.addEventListener("pointerdown", (event) => {
-  if (window.matchMedia("(max-width: 900px)").matches) {
-    return;
-  }
-  dragging = true;
-  dividerEl.setPointerCapture(event.pointerId);
-  setSplitFromClientX(event.clientX);
-});
-
-dividerEl.addEventListener("pointermove", (event) => {
-  if (!dragging) {
-    return;
-  }
-  setSplitFromClientX(event.clientX);
-});
-
-dividerEl.addEventListener("pointerup", (event) => {
-  if (!dragging) {
-    return;
-  }
-  dragging = false;
-  dividerEl.releasePointerCapture(event.pointerId);
-});
-
-dividerEl.addEventListener("pointercancel", () => {
-  dragging = false;
-});
-
-copyYamlBtn.addEventListener("click", () => {
-  void copyText(inputEl.value, copyYamlBtn);
-});
-
-copyOutputBtn.addEventListener("click", () => {
-  void copyText(outputEl.textContent, copyOutputBtn);
-});
-
+initTheme();
+initEvents();
 renderYamlHighlight();
 syncYamlScroll();
 void boot();
