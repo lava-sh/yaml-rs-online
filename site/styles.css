@@ -130,10 +130,10 @@ body {
 }
 
 .panel-head {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
   padding: 8px 10px;
   border-bottom: 1px solid var(--line);
 }
@@ -148,6 +148,10 @@ body {
 
 .copy-btn {
   --btn-size: 30px;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   border: 1px solid #cbbca9;
   background: #f8f1e8;
   color: #2d241d;
@@ -157,7 +161,6 @@ body {
   padding: 0;
   display: inline-grid;
   place-items: center;
-  position: relative;
   font-family: inherit;
   cursor: pointer;
   transition:
@@ -172,7 +175,7 @@ body {
 }
 
 .copy-btn:active {
-  transform: translateY(1px) scale(0.98);
+  transform: translateY(calc(-50% + 1px)) scale(0.98);
 }
 
 .copy-btn svg {
