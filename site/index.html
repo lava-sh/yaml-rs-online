@@ -237,7 +237,7 @@ meta:
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.27.3/full/pyodide.js"></script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"></script>
   <script>
     const inputEl = document.getElementById("yamlInput");
     const outputEl = document.getElementById("output");
@@ -279,11 +279,21 @@ repr(parsed)
 
     async function boot() {
       try {
+        const wheelResp = await fetch("./wheels/latest.txt", { cache: "no-store" });
+        if (!wheelResp.ok) {
+          throw new Error(`Failed to load wheels/latest.txt: HTTP ${wheelResp.status}`);
+        }
+        const wheelName = (await wheelResp.text()).trim();
+        if (!wheelName) {
+          throw new Error("wheels/latest.txt is empty");
+        }
+
         pyodide = await loadPyodide();
         await pyodide.loadPackage("micropip");
+        pyodide.globals.set("wheel_name", wheelName);
         await pyodide.runPythonAsync(`
 import micropip
-await micropip.install('./wheels/yaml_rs-0.0.14-cp312-cp312-emscripten_3_1_58_wasm32.whl')
+await micropip.install(f'./wheels/{wheel_name}')
 `);
         ready = true;
         await renderYaml();
