@@ -1,0 +1,99 @@
+name: "Build yaml-rs Wheel"
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/yaml-rs-commit.txt"
+      - ".github/workflows/build-wheel.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: build-yaml-rs-wheel
+  cancel-in-progress: true
+
+jobs:
+  build-wheel:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: "Read pinned yaml-rs commit"
+        id: pin
+        shell: bash
+        run: |
+          set -euxo pipefail
+          COMMIT="$(tr -d '\r\n' < .github/yaml-rs-commit.txt)"
+          if [[ ! "${COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid commit hash in .github/yaml-rs-commit.txt: ${COMMIT}" >&2
+            exit 1
+          fi
+          echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "tag=yaml-rs-wheel-${COMMIT}" >> "$GITHUB_OUTPUT"
+
+      - name: "Setup Python"
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+
+      - name: "Install uv"
+        uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
+        with:
+          enable-cache: true
+
+      - name: "Setup Emscripten"
+        uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021 # v14
+        with:
+          version: 4.0.9
+          no-cache: false
+
+      - name: "Install build tooling (maturin)"
+        run: uv pip install maturin --system
+
+      - name: "Build yaml-rs wheel for Pyodide"
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf .tmp
+          git clone --depth 1 --filter=blob:none https://github.com/lava-sh/yaml-rs.git .tmp/yaml-rs
+          cd .tmp/yaml-rs
+          git fetch --depth 1 origin "${{ steps.pin.outputs.commit }}"
+          git checkout "${{ steps.pin.outputs.commit }}"
+          TOOLCHAIN="$(rustup show active-toolchain | cut -d' ' -f1)"
+          rustup target add wasm32-unknown-emscripten --toolchain "${TOOLCHAIN}"
+          maturin build --release --target wasm32-unknown-emscripten -i python3.13
+          mkdir -p "$GITHUB_WORKSPACE/site/wheels"
+          rm -f "$GITHUB_WORKSPACE/site/wheels/"*.whl "$GITHUB_WORKSPACE/site/wheels/latest.txt"
+          WHEEL_PATH="$(ls target/wheels/*.whl | head -n1)"
+          WHEEL_FILE="$(basename "${WHEEL_PATH}")"
+          cp "${WHEEL_PATH}" "$GITHUB_WORKSPACE/site/wheels/${WHEEL_FILE}"
+          printf '%s\n' "${WHEEL_FILE}" > "$GITHUB_WORKSPACE/site/wheels/latest.txt"
+
+      - name: "Create release (if missing)"
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if ! gh release view "${{ steps.pin.outputs.tag }}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create "${{ steps.pin.outputs.tag }}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "yaml-rs wheel ${{ steps.pin.outputs.commit }}" \
+              --notes "Prebuilt yaml-rs Pyodide wheel for commit ${{ steps.pin.outputs.commit }}."
+          fi
+
+      - name: "Upload wheel assets to release"
+        shell: bash
+        run: |
+          set -euxo pipefail
+          gh release upload "${{ steps.pin.outputs.tag }}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber \
+            "site/wheels/latest.txt" \
+            site/wheels/*.whl
