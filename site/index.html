@@ -54,27 +54,29 @@
               </a>
             </div>
           </div>
-          <button
-            id="themeToggleBtn"
-            class="theme-btn"
-            type="button"
-            aria-label="Toggle theme"
-            title="Toggle theme"
-          >
-            <span class="theme-track" aria-hidden="true">
-              <svg class="theme-icon theme-sun" viewBox="0 0 24 24">
-                <path
-                  d="M6.76 4.84 5.35 3.43 3.93 4.84l1.41 1.42 1.42-1.42Zm10.48 0 1.42 1.42 1.41-1.42-1.41-1.41-1.42 1.41ZM12 5a1 1 0 0 0 1-1V2h-2v2a1 1 0 0 0 1 1Zm0 14a1 1 0 0 0-1 1v2h2v-2a1 1 0 0 0-1-1Zm7-7a1 1 0 0 0 1 1h2v-2h-2a1 1 0 0 0-1 1ZM5 12a1 1 0 0 0-1-1H2v2h2a1 1 0 0 0 1-1Zm7-5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"
-                />
-              </svg>
-              <svg class="theme-icon theme-moon" viewBox="0 0 24 24">
-                <path
-                  d="M20.74 15.55A9 9 0 0 1 8.45 3.26a1 1 0 0 0-1.2-1.38A11 11 0 1 0 22.12 16.75a1 1 0 0 0-1.38-1.2Z"
-                />
-              </svg>
-              <span class="theme-thumb"></span>
-            </span>
-          </button>
+          <div class="head-actions">
+            <button
+              id="themeToggleBtn"
+              class="theme-btn"
+              type="button"
+              aria-label="Toggle theme"
+              title="Toggle theme"
+            >
+              <span class="theme-track" aria-hidden="true">
+                <svg class="theme-icon theme-sun" viewBox="0 0 24 24">
+                  <path
+                    d="M6.76 4.84 5.35 3.43 3.93 4.84l1.41 1.42 1.42-1.42Zm10.48 0 1.42 1.42 1.41-1.42-1.41-1.41-1.42 1.41ZM12 5a1 1 0 0 0 1-1V2h-2v2a1 1 0 0 0 1 1Zm0 14a1 1 0 0 0-1 1v2h2v-2a1 1 0 0 0-1-1Zm7-7a1 1 0 0 0 1 1h2v-2h-2a1 1 0 0 0-1 1ZM5 12a1 1 0 0 0-1-1H2v2h2a1 1 0 0 0 1-1Zm7-5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"
+                  />
+                </svg>
+                <svg class="theme-icon theme-moon" viewBox="0 0 24 24">
+                  <path
+                    d="M20.74 15.55A9 9 0 0 1 8.45 3.26a1 1 0 0 0-1.2-1.38A11 11 0 1 0 22.12 16.75a1 1 0 0 0-1.38-1.2Z"
+                  />
+                </svg>
+                <span class="theme-thumb"></span>
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -82,6 +84,22 @@
         <article class="panel panel-left">
           <div class="panel-head">
             <h2 class="label">YAML</h2>
+            <button
+              id="shareBtn"
+              class="share-btn panel-share-btn"
+              type="button"
+              aria-label="Copy share link"
+              title="Copy share link"
+            >
+              <svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M18 16.08c-.76 0-1.44.3-1.96.78L8.91 12.7a2.9 2.9 0 0 0 0-1.39l7-4.11A2.99 2.99 0 1 0 15 5a3 3 0 0 0 .05.53l-7 4.11a3 3 0 1 0 0 4.72l7.12 4.18A3 3 0 1 0 18 16.08Z"
+                />
+              </svg>
+              <svg class="check-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 16.2-3.5-3.6L4 14l5 5 11-11-1.5-1.4L9 16.2Z" />
+              </svg>
+            </button>
             <button
               id="copyYamlBtn"
               class="copy-btn"

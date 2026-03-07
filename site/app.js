@@ -9,6 +9,7 @@ const els = {
   divider: document.getElementById("divider"),
   copyYamlBtn: document.getElementById("copyYamlBtn"),
   copyOutputBtn: document.getElementById("copyOutputBtn"),
+  shareBtn: document.getElementById("shareBtn"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   hljsTheme: document.getElementById("hljsTheme"),
 };
@@ -33,6 +34,7 @@ const WHEEL_CANDIDATES_FALLBACK = [
 ];
 
 const THEME_KEY = "yaml-rs-theme";
+const SHARE_PARAM = "s";
 const HLJS_LIGHT =
   "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css";
 const HLJS_DARK =
@@ -41,13 +43,19 @@ const HLJS_DARK =
 let pyodide;
 let isReady = false;
 let renderTimer;
+let shareTimer;
 let highlightFrame = 0;
 let lastHighlightSource = "";
 let lastLineCount = 0;
 let renderSeq = 0;
 let pendingRenders = 0;
+let shareUpdateSeq = 0;
 const copyTimers = new WeakMap();
 const HLJS_MAX_LENGTH = 12000;
+const SHARE_FORMAT_PREFIX = "v1";
+const SHARE_CODEC_RAW = "r";
+const SHARE_CODEC_DEFLATE = "d";
+const SHARE_CODEC_DEFLATE_RAW = "z";
 
 function escapeHtml(text) {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -168,6 +176,179 @@ function flashCopied(button) {
     copyTimers.delete(button);
   }, 900);
   copyTimers.set(button, timerId);
+}
+
+function bytesToBase64(bytes) {
+  let binary = "";
+  const chunk = 0x8000;
+
+  for (let idx = 0; idx < bytes.length; idx += chunk) {
+    const part = bytes.subarray(idx, idx + chunk);
+    binary += String.fromCharCode(...part);
+  }
+
+  return btoa(binary);
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let idx = 0; idx < binary.length; idx += 1) {
+    bytes[idx] = binary.charCodeAt(idx);
+  }
+  return bytes;
+}
+
+function toBase64Url(bytes) {
+  return bytesToBase64(bytes).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function fromBase64Url(value) {
+  const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
+  const padding = (4 - (base64.length % 4 || 4)) % 4;
+  return base64ToBytes(`${base64}${"=".repeat(padding)}`);
+}
+
+async function compressBytes(bytes, format) {
+  const stream = new CompressionStream(format);
+  const writer = stream.writable.getWriter();
+  await writer.write(bytes);
+  await writer.close();
+  const result = await new Response(stream.readable).arrayBuffer();
+  return new Uint8Array(result);
+}
+
+async function decompressBytes(bytes, format) {
+  const stream = new DecompressionStream(format);
+  const writer = stream.writable.getWriter();
+  await writer.write(bytes);
+  await writer.close();
+  const result = await new Response(stream.readable).arrayBuffer();
+  return new Uint8Array(result);
+}
+
+async function encodeShareState(yamlText) {
+  const normalized = (yamlText ?? "").replace(/\r\n/g, "\n");
+  const input = new TextEncoder().encode(normalized);
+  let codec = SHARE_CODEC_RAW;
+  let payload = input;
+
+  if (typeof CompressionStream !== "undefined") {
+    try {
+      const deflateRaw = await compressBytes(input, "deflate-raw");
+      if (deflateRaw.length < payload.length) {
+        codec = SHARE_CODEC_DEFLATE_RAW;
+        payload = deflateRaw;
+      }
+    } catch {
+      // Try deflate if raw is not supported.
+      try {
+        const deflate = await compressBytes(input, "deflate");
+        if (deflate.length < payload.length) {
+          codec = SHARE_CODEC_DEFLATE;
+          payload = deflate;
+        }
+      } catch {
+        // Keep raw payload.
+      }
+    }
+  }
+
+  return `${SHARE_FORMAT_PREFIX}${codec}.${toBase64Url(payload)}`;
+}
+
+async function decodeShareState(encoded) {
+  if (!encoded) {
+    return "";
+  }
+
+  let codec = SHARE_CODEC_RAW;
+  let dataPart = encoded;
+
+  if (encoded.startsWith(SHARE_FORMAT_PREFIX)) {
+    const dotIdx = encoded.indexOf(".");
+    if (dotIdx <= SHARE_FORMAT_PREFIX.length) {
+      throw new Error("Invalid share payload header.");
+    }
+    codec = encoded.slice(SHARE_FORMAT_PREFIX.length, dotIdx);
+    dataPart = encoded.slice(dotIdx + 1);
+  }
+
+  const bytes = fromBase64Url(dataPart);
+
+  if (codec === SHARE_CODEC_RAW) {
+    return new TextDecoder().decode(bytes);
+  }
+
+  if (typeof DecompressionStream === "undefined") {
+    throw new Error("Your browser does not support decompression for this share link.");
+  }
+
+  if (codec === SHARE_CODEC_DEFLATE_RAW) {
+    const decompressed = await decompressBytes(bytes, "deflate-raw");
+    return new TextDecoder().decode(decompressed);
+  }
+
+  if (codec === SHARE_CODEC_DEFLATE) {
+    const decompressed = await decompressBytes(bytes, "deflate");
+    return new TextDecoder().decode(decompressed);
+  }
+
+  throw new Error("Unknown share payload codec.");
+}
+
+function updateAddressBarWithToken(token) {
+  const url = new URL(window.location.href);
+  if (token) {
+    url.searchParams.set(SHARE_PARAM, token);
+  } else {
+    url.searchParams.delete(SHARE_PARAM);
+  }
+  history.replaceState(null, "", url);
+  return url.toString();
+}
+
+async function refreshShareLink() {
+  if (!els.input) {
+    return "";
+  }
+
+  const seq = ++shareUpdateSeq;
+  const token = await encodeShareState(els.input.value);
+  if (seq !== shareUpdateSeq) {
+    return "";
+  }
+  return updateAddressBarWithToken(token);
+}
+
+function scheduleShareUpdate() {
+  clearTimeout(shareTimer);
+  shareTimer = setTimeout(() => {
+    void refreshShareLink();
+  }, 260);
+}
+
+async function restoreYamlFromUrl() {
+  if (!els.input) {
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get(SHARE_PARAM);
+
+  if (!encoded) {
+    return;
+  }
+
+  try {
+    const decoded = await decodeShareState(encoded);
+    els.input.value = decoded;
+  } catch (err) {
+    if (els.output) {
+      els.output.classList.add("err");
+      els.output.textContent = `Share decode error: ${err}`;
+    }
+  }
 }
 
 async function copyText(value, button) {
@@ -303,6 +484,7 @@ function initEvents() {
 
   els.input.addEventListener("input", () => {
     scheduleHighlight();
+    scheduleShareUpdate();
     clearTimeout(renderTimer);
     renderTimer = setTimeout(() => {
       void renderYaml();
@@ -396,6 +578,11 @@ function initEvents() {
     void copyText(els.output.textContent, els.copyOutputBtn);
   });
 
+  els.shareBtn?.addEventListener("click", async () => {
+    const shareUrl = (await refreshShareLink()) || window.location.href;
+    await copyText(shareUrl, els.shareBtn);
+  });
+
   els.themeToggleBtn?.addEventListener("click", () => {
     const current =
       document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
@@ -410,5 +597,9 @@ function initEvents() {
 
 initTheme();
 initEvents();
-scheduleHighlight();
-void boot();
+void (async () => {
+  await restoreYamlFromUrl();
+  scheduleHighlight();
+  await refreshShareLink();
+  await boot();
+})();

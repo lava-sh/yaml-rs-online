@@ -95,6 +95,12 @@ body::before {
   gap: 16px;
 }
 
+.head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .head-main {
   display: flex;
   align-items: center;
@@ -266,6 +272,87 @@ body::before {
   flex: 0 0 auto;
   touch-action: none;
   z-index: 8;
+}
+
+.share-btn {
+  --btn-size: 34px;
+  border: 1px solid var(--copy-border);
+  background: var(--copy-bg);
+  color: var(--copy-text);
+  border-radius: 10px;
+  width: var(--btn-size);
+  height: var(--btn-size);
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease,
+    box-shadow 180ms ease;
+}
+
+.share-btn:hover {
+  background: var(--copy-hover-bg);
+  transform: translateY(-1px);
+}
+
+.share-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.share-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.share-btn svg {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  transition:
+    opacity 120ms ease,
+    transform 180ms ease;
+}
+
+.share-btn .check-icon {
+  opacity: 0;
+  transform: scale(0.7);
+}
+
+.share-btn.copied {
+  background: var(--copy-ok-bg);
+  border-color: var(--copy-ok-border);
+  color: var(--copy-ok-text);
+  animation: copyPulse 420ms ease;
+}
+
+.share-btn.copied .copy-icon {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.share-btn.copied .check-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.panel-share-btn {
+  position: absolute;
+  right: 54px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.panel-share-btn:hover {
+  transform: translateY(calc(-50% - 1px));
+}
+
+.panel-share-btn:active {
+  transform: translateY(calc(-50% + 1px)) scale(0.98);
 }
 
 .divider::before {
@@ -694,6 +781,10 @@ pre {
     gap: 10px;
   }
 
+  .head-actions {
+    align-self: flex-end;
+  }
+
   .head-main {
     width: 100%;
     align-items: center;
@@ -760,6 +851,11 @@ pre {
   .copy-btn {
     --btn-size: 30px;
     right: 8px;
+  }
+
+  .panel-share-btn {
+    --btn-size: 30px;
+    right: 46px;
   }
 
   .editor-wrap {
