@@ -3,6 +3,12 @@ name: "Build And Deploy Pages"
 on:
   push:
     branches: ["main"]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_run:
+    workflows: ["Build yaml-rs Wheel"]
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
@@ -11,6 +17,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,42 +26,34 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: 1
 
-      - name: "Setup Python"
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: "3.13"
-
-      - name: "Install uv"
-        uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
-        with:
-          enable-cache: false
-
-      - name: "Setup Emscripten"
-        uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021 # v14
-        with:
-          version: 4.0.9
-          no-cache: true
-
-      - name: "Install build tooling (maturin)"
-        run: uv pip install maturin --system
-
-      - name: "Build yaml-rs wheel for Pyodide"
+      - name: "Read pinned yaml-rs commit"
+        id: pin
         shell: bash
         run: |
           set -euxo pipefail
-          rm -rf .tmp
-          git clone https://github.com/lava-sh/yaml-rs.git .tmp/yaml-rs
-          cd .tmp/yaml-rs
-          git checkout e07f95f3e44786fe8dd3ace8a2131471366da5c6
-          TOOLCHAIN="$(rustup show active-toolchain | cut -d' ' -f1)"
-          rustup target add wasm32-unknown-emscripten --toolchain "${TOOLCHAIN}"
-          maturin build --release --target wasm32-unknown-emscripten -i python3.13
-          mkdir -p "$GITHUB_WORKSPACE/site/wheels"
-          WHEEL_PATH="$(ls target/wheels/*.whl | head -n1)"
-          WHEEL_FILE="$(basename "${WHEEL_PATH}")"
-          cp "${WHEEL_PATH}" "$GITHUB_WORKSPACE/site/wheels/${WHEEL_FILE}"
-          printf '%s\n' "${WHEEL_FILE}" > "$GITHUB_WORKSPACE/site/wheels/latest.txt"
+          COMMIT="$(tr -d '\r\n' < .github/yaml-rs-commit.txt)"
+          if [[ ! "${COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid commit hash in .github/yaml-rs-commit.txt: ${COMMIT}" >&2
+            exit 1
+          fi
+          echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "tag=yaml-rs-wheel-${COMMIT}" >> "$GITHUB_OUTPUT"
+
+      - name: "Download prebuilt wheel from release"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p site/wheels
+          rm -f site/wheels/*.whl site/wheels/latest.txt
+          gh release download "${{ steps.pin.outputs.tag }}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --pattern "*.whl" \
+            --pattern "latest.txt" \
+            --dir site/wheels
 
       - name: "Upload Pages artifact"
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
