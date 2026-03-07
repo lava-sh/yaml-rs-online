@@ -20,41 +20,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: "Setup Python"
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: "3.13"
-
-      - name: "Install uv"
-        uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
-        with:
-          enable-cache: false
-
-      - name: "Setup Emscripten"
-        uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021 # v14
-        with:
-          version: 4.0.9
-          no-cache: true
-
-      - name: "Install build tooling (maturin)"
-        run: uv pip install maturin --system
-
-      - name: "Build yaml-rs wheel for Pyodide"
+      - name: "Download yaml-rs wheel for Pyodide"
         shell: bash
         run: |
           set -euxo pipefail
-          rm -rf .tmp
-          git clone https://github.com/lava-sh/yaml-rs.git .tmp/yaml-rs
-          cd .tmp/yaml-rs
-          git checkout e07f95f3e44786fe8dd3ace8a2131471366da5c6
-          TOOLCHAIN="$(rustup show active-toolchain | cut -d' ' -f1)"
-          rustup target add wasm32-unknown-emscripten --toolchain "${TOOLCHAIN}"
-          maturin build --release --target wasm32-unknown-emscripten -i python3.13
           mkdir -p "$GITHUB_WORKSPACE/site/wheels"
-          WHEEL_PATH="$(ls target/wheels/*.whl | head -n1)"
-          WHEEL_FILE="$(basename "${WHEEL_PATH}")"
-          cp "${WHEEL_PATH}" "$GITHUB_WORKSPACE/site/wheels/${WHEEL_FILE}"
-          printf '%s\n' "${WHEEL_FILE}" > "$GITHUB_WORKSPACE/site/wheels/latest.txt"
+          curl -fL \
+            "https://github.com/lava-sh/yaml-rs/releases/download/0.0.15/yaml_rs-0.0.15-cp313-cp313-emscripten_4_0_9_wasm32.whl" \
+            -o "$GITHUB_WORKSPACE/site/wheels/yaml_rs-0.0.15-cp313-cp313-emscripten_4_0_9_wasm32.whl"
 
       - name: "Upload Pages artifact"
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0

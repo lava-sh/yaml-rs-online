@@ -26,11 +26,8 @@ except yaml_rs.YAMLDecodeError as exc:
 result
 `;
 
-const WHEEL_CANDIDATES_FALLBACK = [
-  "yaml_rs.whl",
-  "yaml_rs-0.0.14-cp313-cp313-emscripten_4_0_9_wasm32.whl",
-  "yaml_rs-0.0.14-cp312-cp312-emscripten_3_1_58_wasm32.whl",
-];
+const YAML_RS_WHEEL_PATH =
+  "./wheels/yaml_rs-0.0.15-cp313-cp313-emscripten_4_0_9_wasm32.whl";
 
 const THEME_KEY = "yaml-rs-theme";
 const HLJS_LIGHT =
@@ -239,41 +236,14 @@ async function renderYaml() {
 }
 
 async function installWheel() {
-  const candidates = [];
-
   try {
-    const response = await fetch("./wheels/latest.txt", { cache: "no-store" });
-    if (response.ok) {
-      const wheelName = (await response.text()).trim();
-      if (wheelName) {
-        candidates.push(wheelName);
-      }
-    }
-  } catch {
-    // ignore and use fallbacks
-  }
-
-  candidates.push(...WHEEL_CANDIDATES_FALLBACK);
-
-  const uniqueCandidates = [...new Set(candidates)];
-  let lastError = "unknown error";
-
-  for (const wheel of uniqueCandidates) {
-    try {
-      pyodide.globals.set("wheel_name", wheel);
-      await pyodide.runPythonAsync(`
+    await pyodide.runPythonAsync(`
 import micropip
-await micropip.install(f'./wheels/{wheel_name}')
+await micropip.install("${YAML_RS_WHEEL_PATH}")
 `);
-      return;
-    } catch (err) {
-      lastError = String(err);
-    }
+  } catch (err) {
+    throw new Error(`Failed to install yaml_rs wheel from ${YAML_RS_WHEEL_PATH}: ${String(err)}`);
   }
-
-  throw new Error(
-    `Failed to install wheel from ./wheels (tried ${uniqueCandidates.length} candidates). Last error: ${lastError}`,
-  );
 }
 
 async function boot() {
