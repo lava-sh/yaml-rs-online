@@ -21,7 +21,7 @@ try:
     parsed = yaml_rs.loads(yaml_input)
     result = pformat(parsed, width=80, sort_dicts=False)
 except yaml_rs.YAMLDecodeError as exc:
-    result = f"YAML error: {exc}"
+    result = f"{exc}"
 
 result
 `;
