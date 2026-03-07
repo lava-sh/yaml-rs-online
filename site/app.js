@@ -298,14 +298,19 @@ async function decodeShareState(encoded) {
 }
 
 function updateAddressBarWithToken(token) {
-  const url = new URL(window.location.href);
-  if (token) {
-    url.searchParams.set(SHARE_PARAM, token);
-  } else {
-    url.searchParams.delete(SHARE_PARAM);
+  try {
+    const url = new URL(window.location.href);
+    if (token) {
+      url.searchParams.set(SHARE_PARAM, token);
+    } else {
+      url.searchParams.delete(SHARE_PARAM);
+    }
+    history.replaceState(null, "", url);
+    return url.toString();
+  } catch {
+    // Some environments (for example, file://) can reject replaceState.
+    return window.location.href;
   }
-  history.replaceState(null, "", url);
-  return url.toString();
 }
 
 async function refreshShareLink() {
@@ -313,12 +318,16 @@ async function refreshShareLink() {
     return "";
   }
 
-  const seq = ++shareUpdateSeq;
-  const token = await encodeShareState(els.input.value);
-  if (seq !== shareUpdateSeq) {
+  try {
+    const seq = ++shareUpdateSeq;
+    const token = await encodeShareState(els.input.value);
+    if (seq !== shareUpdateSeq) {
+      return "";
+    }
+    return updateAddressBarWithToken(token);
+  } catch {
     return "";
   }
-  return updateAddressBarWithToken(token);
 }
 
 function scheduleShareUpdate() {
@@ -598,8 +607,11 @@ function initEvents() {
 initTheme();
 initEvents();
 void (async () => {
-  await restoreYamlFromUrl();
-  scheduleHighlight();
-  await refreshShareLink();
-  await boot();
+  try {
+    await restoreYamlFromUrl();
+    scheduleHighlight();
+    await refreshShareLink();
+  } finally {
+    await boot();
+  }
 })();
