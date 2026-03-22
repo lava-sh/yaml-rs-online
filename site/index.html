@@ -3,166 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>yaml-rs</title>
+    <meta
+      name="description"
+      content="yaml-rs online playground built with Vue, TypeScript, Vite and Bun."
+    />
+    <title>yaml-rs playground</title>
     <link
       rel="icon"
-      href="https://avatars.githubusercontent.com/u/223430533?s=400&u=0377eeb0ae405c2ff4c719f650c36b0e699dedd4&v=4"
+      href="https://avatars.githubusercontent.com/u/223430533?s=64&u=0377eeb0ae405c2ff4c719f650c36b0e699dedd4&v=4"
     />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      id="hljsTheme"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
   </head>
   <body>
-    <main class="frame">
-      <header class="head">
-        <div class="head-inner">
-          <div class="head-main">
-            <span class="brand">yaml-rs</span>
-            <span class="head-sep" aria-hidden="true">|</span>
-            <div class="links">
-              <a
-                class="link"
-                href="https://github.com/lava-sh/yaml-rs"
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                <img
-                  class="icon"
-                  src="https://cdn.simpleicons.org/github/1e1a17"
-                  alt=""
-                  aria-hidden="true"
-                />
-                <span>GitHub</span>
-              </a>
-              <span class="link-sep" aria-hidden="true">|</span>
-              <a
-                class="link"
-                href="https://pypi.org/project/yaml-rs/"
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                <img
-                  class="icon"
-                  src="https://cdn.simpleicons.org/pypi/3775A9"
-                  alt=""
-                  aria-hidden="true"
-                />
-                <span>PyPI</span>
-              </a>
-            </div>
-          </div>
-          <button
-            id="themeToggleBtn"
-            class="theme-btn"
-            type="button"
-            aria-label="Toggle theme"
-            title="Toggle theme"
-          >
-            <span class="theme-track" aria-hidden="true">
-              <svg class="theme-icon theme-sun" viewBox="0 0 24 24">
-                <path
-                  d="M6.76 4.84 5.35 3.43 3.93 4.84l1.41 1.42 1.42-1.42Zm10.48 0 1.42 1.42 1.41-1.42-1.41-1.41-1.42 1.41ZM12 5a1 1 0 0 0 1-1V2h-2v2a1 1 0 0 0 1 1Zm0 14a1 1 0 0 0-1 1v2h2v-2a1 1 0 0 0-1-1Zm7-7a1 1 0 0 0 1 1h2v-2h-2a1 1 0 0 0-1 1ZM5 12a1 1 0 0 0-1-1H2v2h2a1 1 0 0 0 1-1Zm7-5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"
-                />
-              </svg>
-              <svg class="theme-icon theme-moon" viewBox="0 0 24 24">
-                <path
-                  d="M20.74 15.55A9 9 0 0 1 8.45 3.26a1 1 0 0 0-1.2-1.38A11 11 0 1 0 22.12 16.75a1 1 0 0 0-1.38-1.2Z"
-                />
-              </svg>
-              <span class="theme-thumb"></span>
-            </span>
-          </button>
-        </div>
-      </header>
-
-      <section id="split" class="split">
-        <article class="panel panel-left">
-          <div class="panel-head">
-            <h2 class="label">YAML</h2>
-            <button
-              id="copyYamlBtn"
-              class="copy-btn"
-              type="button"
-              aria-label="Copy YAML"
-              title="Copy YAML"
-            >
-              <svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z"
-                />
-              </svg>
-              <svg class="check-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m9 16.2-3.5-3.6L4 14l5 5 11-11-1.5-1.4L9 16.2Z" />
-              </svg>
-            </button>
-          </div>
-          <label for="yamlInput" class="sr-only">YAML input</label>
-          <div class="editor-wrap">
-            <pre id="yamlLineNumbers" class="yaml-lines" aria-hidden="true"></pre>
-            <pre id="yamlHighlight" class="hljs yaml-highlight" aria-hidden="true"></pre>
-            <textarea id="yamlInput">
-# Paste YAML here:
-app:
-  local: true
-  logging:
-    level: INFO
-  version: 1.7
-  release-date: 2015-07-09
-
-  mysql:
-    user: "user"
-    password: "password"
-    host: "127.0.0.1"
-    port: 3306
-    db_name: "database"
-</textarea
-            >
-          </div>
-        </article>
-
-        <div
-          id="divider"
-          class="divider"
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize panels"
-        ></div>
-
-        <article class="panel panel-right">
-          <div class="panel-head">
-            <h2 class="label">Python</h2>
-            <button
-              id="copyOutputBtn"
-              class="copy-btn"
-              type="button"
-              aria-label="Copy output"
-              title="Copy output"
-            >
-              <svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z"
-                />
-              </svg>
-              <svg class="check-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m9 16.2-3.5-3.6L4 14l5 5 11-11-1.5-1.4L9 16.2Z" />
-              </svg>
-            </button>
-          </div>
-          <pre id="output"></pre>
-          <div id="pyStatus" class="py-status" role="status" aria-live="polite" aria-hidden="true">
-            <span class="py-spinner" aria-hidden="true"></span>
-            <span id="pyStatusText">Loading</span>
-          </div>
-        </article>
-      </section>
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/languages/yaml.min.js"></script>
-    <script src="./app.js"></script>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

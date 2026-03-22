@@ -1,0 +1,5 @@
+# https://github.com/lava-sh/yaml-rs/releases
+wheel_version = "latest"
+wheel_pattern = "*cp313*.whl"
+# https://github.com/pyodide/pyodide
+pyodide_version = "0.29.3"

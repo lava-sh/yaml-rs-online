@@ -1,0 +1,23 @@
+{
+  "name": "yaml-rs-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --bun vite",
+    "build": "bun run --bun vite build",
+    "preview": "bun run --bun vite preview",
+    "lint": "oxlint src --deny-warnings",
+    "format": "oxfmt --write src package.json tsconfig.json"
+  },
+  "dependencies": {
+    "highlight.js": "11.11.1",
+    "vue": "3.5.30"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "6.0.5",
+    "oxfmt": "0.41.0",
+    "oxlint": "1.56.0",
+    "typescript": "5.9.3",
+    "vite": "8.0.1"
+  }
+}

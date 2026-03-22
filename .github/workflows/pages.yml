@@ -20,19 +20,73 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: "Download yaml-rs wheel for Pyodide"
+      - name: "Read site config"
+        id: config
         shell: bash
         run: |
           set -euxo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/site/wheels"
-          curl -fL \
-            "https://github.com/lava-sh/yaml-rs/releases/download/0.0.15/yaml_rs-0.0.15-cp313-cp313-emscripten_4_0_9_wasm32.whl" \
-            -o "$GITHUB_WORKSPACE/site/wheels/yaml_rs-0.0.15-cp313-cp313-emscripten_4_0_9_wasm32.whl"
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import tomllib
+          from pathlib import Path
+
+          config = tomllib.loads(Path("config.toml").read_text(encoding="utf-8"))
+          print(f"pyodide_version={config['pyodide_version']}")
+          print(f"wheel_version={config['wheel_version']}")
+          print(f"wheel_pattern={config['wheel_pattern']}")
+          PY
+
+      - name: "Download yaml-rs wheel for Pyodide"
+        shell: bash
+        env:
+          PYODIDE_VERSION: ${{ steps.config.outputs.pyodide_version }}
+          WHEEL_VERSION: ${{ steps.config.outputs.wheel_version }}
+          WHEEL_PATTERN: ${{ steps.config.outputs.wheel_pattern }}
+        run: |
+          set -euxo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/site/public/wheels"
+          rm -f "$GITHUB_WORKSPACE/site/public/wheels/"*.whl
+          if [ "$WHEEL_VERSION" = "latest" ]; then
+            gh release download \
+              --repo lava-sh/yaml-rs \
+              --pattern "$WHEEL_PATTERN" \
+              --dir "$GITHUB_WORKSPACE/site/public/wheels" \
+              --clobber
+          else
+            gh release download "$WHEEL_VERSION" \
+              --repo lava-sh/yaml-rs \
+              --pattern "*${WHEEL_VERSION}${WHEEL_PATTERN}" \
+              --dir "$GITHUB_WORKSPACE/site/public/wheels" \
+              --clobber
+          fi
+          wheel_file="$(basename "$(find "$GITHUB_WORKSPACE/site/public/wheels" -maxdepth 1 -type f -name '*.whl' | head -n 1)")"
+          test -n "$wheel_file"
+          cat > "$GITHUB_WORKSPACE/site/public/config.toml" <<EOF
+          pyodide_version = "${PYODIDE_VERSION}"
+          wheel_version = "${WHEEL_VERSION}"
+          wheel_file = "${wheel_file}"
+          EOF
+
+      - name: "Setup Bun"
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        with:
+          bun-version: latest
+
+      - name: "Install site dependencies"
+        working-directory: site
+        run: bun install --frozen-lockfile
+
+      - name: "Lint site"
+        working-directory: site
+        run: bun run lint
+
+      - name: "Build site"
+        working-directory: site
+        run: bun run build
 
       - name: "Upload Pages artifact"
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
         with:
-          path: site
+          path: site/dist
 
   deploy:
     needs: build
