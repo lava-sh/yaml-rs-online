@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CopyButton from "./CopyButton.vue";
+import CopyButton from "./components/buttons/CopyButton.vue";
 import { usePlayground } from "./playground";
 
 const {
@@ -15,6 +15,7 @@ const {
   inputRef,
   lineNumbersRef,
   output,
+  outputHighlight,
   outputCopied,
   renderError,
   startDrag,
@@ -132,12 +133,14 @@ const {
         <article class="panel">
           <header class="panel-head">
             <h2>YAML v1.2</h2>
-            <CopyButton
-              :copied="yamlCopied"
-              label="Copy YAML"
-              title="Copy YAML"
-              @click="copyText(yamlInput, 'yaml')"
-            />
+            <div class="panel-actions">
+              <CopyButton
+                :copied="yamlCopied"
+                label="Copy YAML"
+                title="Copy YAML"
+                @click="copyText(yamlInput, 'yaml')"
+              />
+            </div>
           </header>
 
           <div class="editor-wrap">
@@ -170,16 +173,23 @@ const {
         <article class="panel panel-output" :class="{ 'is-busy': busy }">
           <header class="panel-head">
             <h2>Python</h2>
-            <CopyButton
-              :copied="outputCopied"
-              label="Copy output"
-              title="Copy output"
-              @click="copyText(output, 'output')"
-            />
+            <div class="panel-actions">
+              <span class="panel-actions-spacer" aria-hidden="true"></span>
+              <CopyButton
+                :copied="outputCopied"
+                label="Copy output"
+                title="Copy output"
+                @click="copyText(output, 'output')"
+              />
+            </div>
           </header>
 
           <div class="output-wrap">
-            <pre :class="{ err: renderError }">{{ output }}</pre>
+            <pre
+              v-if="renderError"
+              :class="{ err: renderError }"
+            >{{ output }}</pre>
+            <pre v-else class="python-highlight" v-html="outputHighlight"></pre>
             <div class="py-status" aria-live="polite" :aria-hidden="busy ? 'false' : 'true'">
               <span class="py-spinner" aria-hidden="true"></span>
               <span>{{ busyLabel }}</span>

@@ -16,6 +16,10 @@
   --warn: #ff7b98;
   --left-width: 52%;
   --top-height: 52%;
+  --hl-comment: #8b949e;
+  --hl-keyword: #ff7b72;
+  --hl-string: #a5d6ff;
+  --hl-symbol: #d2a8ff;
 }
 
 * {
@@ -224,6 +228,10 @@ textarea {
   --text: #14182a;
   --muted: #4e5678;
   --line: rgba(84, 92, 138, 0.28);
+  --hl-comment: #6e7781;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a3069;
+  --hl-symbol: #8250df;
 }
 
 :root[data-theme="light"] .theme-check {
@@ -287,29 +295,6 @@ textarea {
   background: rgba(22, 101, 52, 0.08);
 }
 
-:root[data-theme="light"] .hljs-comment,
-:root[data-theme="light"] .hljs-quote {
-  color: #667095;
-}
-
-:root[data-theme="light"] .hljs-attr,
-:root[data-theme="light"] .hljs-selector-tag,
-:root[data-theme="light"] .hljs-meta {
-  color: #6c4fd3;
-}
-
-:root[data-theme="light"] .hljs-string,
-:root[data-theme="light"] .hljs-number,
-:root[data-theme="light"] .hljs-literal {
-  color: #006d8f;
-}
-
-:root[data-theme="light"] .hljs-bullet,
-:root[data-theme="light"] .hljs-symbol,
-:root[data-theme="light"] .hljs-punctuation {
-  color: #7d3fb2;
-}
-
 .workbench {
   padding: 0;
   border-radius: 0;
@@ -366,7 +351,7 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 10px 88px 10px 12px;
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.02);
   position: relative;
@@ -379,15 +364,33 @@ textarea {
   text-align: center;
 }
 
-.copy-btn {
+.panel-actions {
   position: absolute;
   right: 12px;
   top: 50%;
+  display: inline-flex;
+  gap: 8px;
+  transform: translateY(-50%);
+  align-items: center;
+}
+
+.panel-actions-spacer {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+}
+
+.copy-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   z-index: 2;
+  flex: 0 0 auto;
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid var(--line);
+  border: 0.5px solid var(--line);
   border-radius: 8px;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.04);
@@ -398,15 +401,14 @@ textarea {
     background-color 140ms ease,
     transform 140ms ease,
     border-radius 140ms ease;
-  transform: translateY(-50%);
 }
 
 .copy-icon {
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -443,7 +445,7 @@ textarea {
   color: var(--text);
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   background: rgba(255, 255, 255, 0.06);
-  transform: translateY(calc(-50% - 1px));
+  transform: translateY(-1px);
 }
 
 .divider {
@@ -525,6 +527,10 @@ textarea {
   text-rendering: geometricPrecision;
 }
 
+.python-highlight {
+  text-rendering: geometricPrecision;
+}
+
 textarea {
   resize: none;
   outline: none;
@@ -575,25 +581,25 @@ textarea {
 
 .hljs-comment,
 .hljs-quote {
-  color: #7a82aa;
+  color: var(--hl-comment);
 }
 
 .hljs-attr,
 .hljs-selector-tag,
 .hljs-meta {
-  color: #b592ff;
+  color: var(--hl-keyword);
 }
 
 .hljs-string,
 .hljs-number,
 .hljs-literal {
-  color: #71d5ff;
+  color: var(--hl-string);
 }
 
 .hljs-bullet,
 .hljs-symbol,
 .hljs-punctuation {
-  color: #8c7bff;
+  color: var(--hl-symbol);
 }
 
 @media (max-width: 980px) {

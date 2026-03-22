@@ -1,8 +1,10 @@
 import hljs from "highlight.js/lib/core";
+import python from "highlight.js/lib/languages/python";
 import yaml from "highlight.js/lib/languages/yaml";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 hljs.registerLanguage("yaml", yaml);
+hljs.registerLanguage("python", python);
 
 type Theme = "light" | "dark";
 
@@ -11,7 +13,6 @@ type Tone = "muted" | "ready" | "warn";
 type SiteConfig = {
   pyodide_version: string;
   wheel_file: string;
-  wheel_version?: string;
 };
 
 type PyodideRuntime = {
@@ -66,6 +67,29 @@ function escapeHtml(text: string): string {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
+async function writeClipboardText(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch {
+    const helper = document.createElement("textarea");
+    helper.value = text;
+    helper.style.position = "fixed";
+    helper.style.left = "-9999px";
+    helper.style.top = "0";
+    helper.setAttribute("readonly", "");
+    document.body.append(helper);
+    helper.focus();
+    helper.select();
+    helper.setSelectionRange(0, helper.value.length);
+    const copied = document.execCommand("copy");
+    helper.remove();
+    if (!copied) {
+      throw new Error("Copy command failed");
+    }
+  }
+}
+
 function parseSimpleToml(source: string): SiteConfig {
   const entries = Object.fromEntries(
     Array.from(source.matchAll(/^\s*([a-z_]+)\s*=\s*"([^"]*)"\s*$/gim), ([, key, value]) => [
@@ -83,7 +107,6 @@ function parseSimpleToml(source: string): SiteConfig {
   return {
     pyodide_version: pyodideVersion,
     wheel_file: wheelFile,
-    wheel_version: entries.wheel_version,
   };
 }
 
@@ -179,6 +202,7 @@ export function usePlayground() {
   const theme = ref<Theme>("dark");
   const yamlInput = ref(DEFAULT_YAML);
   const output = ref("");
+  const outputHighlight = ref("");
   const busyLabel = ref("Loading runtime");
   const busy = ref(false);
   const renderError = ref(false);
@@ -207,7 +231,7 @@ export function usePlayground() {
   let lastLineCount = 0;
   let dragging = false;
   let renderQueuedSource = "";
-  const copyTimers: Record<"yaml" | "output", number> = { yaml: 0, output: 0 };
+  const feedbackTimers: Record<"yaml" | "output", number> = { yaml: 0, output: 0 };
 
   function setBusy(active: boolean, label = "Parsing YAML"): void {
     busy.value = active;
@@ -252,6 +276,27 @@ export function usePlayground() {
     }
   }
 
+  function renderOutputHighlight(source: string): void {
+    if (renderError.value) {
+      outputHighlight.value = escapeHtml(source);
+      return;
+    }
+
+    if (source.length > HLJS_MAX_LENGTH) {
+      outputHighlight.value = escapeHtml(source);
+      return;
+    }
+
+    try {
+      outputHighlight.value = hljs.highlight(source, {
+        language: "python",
+        ignoreIllegals: true,
+      }).value;
+    } catch {
+      outputHighlight.value = escapeHtml(source);
+    }
+  }
+
   function syncYamlScroll(): void {
     if (!inputRef.value || !highlightRef.value || !lineNumbersRef.value) {
       return;
@@ -292,6 +337,7 @@ export function usePlayground() {
       }
       renderError.value = false;
       output.value = result;
+      renderOutputHighlight(result);
       engineTone.value = "ready";
     } catch (error) {
       if (seq !== renderSeq) {
@@ -299,6 +345,7 @@ export function usePlayground() {
       }
       renderError.value = true;
       output.value = String(error);
+      renderOutputHighlight(String(error));
       engineBadge.value = "Runtime error";
       engineTone.value = "warn";
     } finally {
@@ -348,6 +395,7 @@ await micropip.install("./wheels/${config.wheel_file}")
     } catch (error) {
       renderError.value = true;
       output.value = String(error);
+      renderOutputHighlight(String(error));
       engineBadge.value = "Boot failed";
       engineTone.value = "warn";
     } finally {
@@ -373,9 +421,9 @@ await micropip.install("./wheels/${config.wheel_file}")
     applyTheme(theme.value);
   }
 
-  function flashCopied(kind: "yaml" | "output"): void {
-    if (copyTimers[kind]) {
-      window.clearTimeout(copyTimers[kind]);
+  function flashFeedback(kind: "yaml" | "output"): void {
+    if (feedbackTimers[kind]) {
+      window.clearTimeout(feedbackTimers[kind]);
     }
 
     if (kind === "yaml") {
@@ -384,7 +432,7 @@ await micropip.install("./wheels/${config.wheel_file}")
       outputCopied.value = true;
     }
 
-    copyTimers[kind] = window.setTimeout(() => {
+    feedbackTimers[kind] = window.setTimeout(() => {
       if (kind === "yaml") {
         yamlCopied.value = false;
       } else {
@@ -394,30 +442,29 @@ await micropip.install("./wheels/${config.wheel_file}")
   }
 
   async function copyText(text: string, kind: "yaml" | "output"): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(text);
-      flashCopied(kind);
-      return;
-    } catch {
-      const helper = document.createElement("textarea");
-      helper.value = text;
-      helper.style.position = "fixed";
-      helper.style.left = "-9999px";
-      helper.style.top = "0";
-      helper.setAttribute("readonly", "");
-      document.body.append(helper);
-      helper.focus();
-      helper.select();
-      helper.setSelectionRange(0, helper.value.length);
-      const copied = document.execCommand("copy");
-      helper.remove();
-      if (!copied) {
-        throw new Error("Copy command failed");
-      }
-    }
-
-    flashCopied(kind);
+    await writeClipboardText(text);
+    flashFeedback(kind);
   }
+
+  const onPointerMove = (event: PointerEvent) => {
+    if (!dragging) {
+      return;
+    }
+    setSplitFromPointer(event.clientX, event.clientY);
+  };
+
+  const onPointerUp = () => {
+    if (!dragging) {
+      return;
+    }
+    dragging = false;
+    document.body.classList.remove("is-resizing");
+    document.body.style.userSelect = "";
+  };
+
+  const onResize = () => {
+    restoreSplitRatio();
+  };
 
   watch(yamlInput, () => {
     scheduleHighlight();
@@ -434,41 +481,23 @@ await micropip.install("./wheels/${config.wheel_file}")
     scheduleHighlight();
     void boot();
 
-    const onPointerMove = (event: PointerEvent) => {
-      if (!dragging) {
-        return;
-      }
-      setSplitFromPointer(event.clientX, event.clientY);
-    };
-    const onPointerUp = () => {
-      if (!dragging) {
-        return;
-      }
-      dragging = false;
-      document.body.classList.remove("is-resizing");
-      document.body.style.userSelect = "";
-    };
-    const onResize = () => {
-      restoreSplitRatio();
-    };
-
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
     window.addEventListener("resize", onResize, { passive: true });
+  });
 
-    onBeforeUnmount(() => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerUp);
-      window.removeEventListener("resize", onResize);
-      window.clearTimeout(renderTimer);
-      window.clearTimeout(copyTimers.yaml);
-      window.clearTimeout(copyTimers.output);
-      if (highlightFrame) {
-        window.cancelAnimationFrame(highlightFrame);
-      }
-    });
+  onBeforeUnmount(() => {
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointercancel", onPointerUp);
+    window.removeEventListener("resize", onResize);
+    window.clearTimeout(renderTimer);
+    window.clearTimeout(feedbackTimers.yaml);
+    window.clearTimeout(feedbackTimers.output);
+    if (highlightFrame) {
+      window.cancelAnimationFrame(highlightFrame);
+    }
   });
 
   return {
@@ -484,6 +513,7 @@ await micropip.install("./wheels/${config.wheel_file}")
     inputRef,
     lineNumbersRef,
     output,
+    outputHighlight,
     outputCopied,
     renderError,
     setSplitFromPointer,
