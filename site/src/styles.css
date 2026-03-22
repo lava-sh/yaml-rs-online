@@ -16,11 +16,6 @@
   --warn: #ff7b98;
   --left-width: 52%;
   --top-height: 52%;
-  --page-pad: 0px;
-  --radius-xl: 18px;
-  --radius-lg: 14px;
-  --radius-md: 12px;
-  --shadow: 0 18px 48px rgba(4, 5, 10, 0.32);
 }
 
 * {
@@ -108,30 +103,25 @@ textarea {
 
 .brand-block {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
 }
 
 .brand {
   margin: 0;
   font-size: 1.1rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
-}
-
-.brand-note {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
 }
 
 .topbar-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
+  gap: 8px;
   min-width: 40px;
   min-height: 40px;
-  padding: 0;
+  padding: 0 10px;
   border: 0;
   border-radius: 10px;
   color: var(--muted);
@@ -147,10 +137,18 @@ textarea {
   width: 20px;
   height: 20px;
   display: block;
+  flex: 0 0 auto;
 }
 
 .topbar-icon-light {
   display: none;
+}
+
+.topbar-link-text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 .topbar-link:hover {
@@ -226,7 +224,6 @@ textarea {
   --text: #14182a;
   --muted: #4e5678;
   --line: rgba(84, 92, 138, 0.28);
-  --shadow: 0 18px 40px rgba(70, 76, 108, 0.14);
 }
 
 :root[data-theme="light"] .theme-check {
@@ -263,10 +260,6 @@ textarea {
 :root[data-theme="light"] .copy-btn,
 :root[data-theme="light"] .badge {
   background: rgba(255, 255, 255, 0.78);
-}
-
-:root[data-theme="light"] .copy-btn.copied::before {
-  background: rgba(255, 255, 255, 0.92);
 }
 
 :root[data-theme="light"] .topbar-link {
@@ -494,7 +487,7 @@ pre {
   margin: 0;
   width: 100%;
   height: 100%;
-  padding: 14px;
+  padding: 4px 14px 14px;
   border: 0;
   color: var(--text);
   background: transparent;
@@ -649,11 +642,6 @@ textarea {
 }
 
 @media (max-width: 640px) {
-  :root {
-    --radius-xl: 14px;
-    --radius-lg: 12px;
-  }
-
   .topbar-main,
   .topbar-side {
     flex-direction: column;
@@ -671,7 +659,7 @@ textarea {
 
   textarea,
   pre {
-    padding: 12px;
+    padding: 4px 12px 12px;
     font-size: 14px;
   }
 }

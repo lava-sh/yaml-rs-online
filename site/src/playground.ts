@@ -161,6 +161,20 @@ function restoreSplitRatio(): number {
   return Number.isFinite(saved) ? setSplitRatio(saved) : setSplitRatio(52);
 }
 
+function countLines(source: string): number {
+  if (source.length === 0) {
+    return 1;
+  }
+
+  let lines = 1;
+  for (let i = 0; i < source.length; i += 1) {
+    if (source.charCodeAt(i) === 10) {
+      lines += 1;
+    }
+  }
+  return lines;
+}
+
 export function usePlayground() {
   const theme = ref<Theme>("dark");
   const yamlInput = ref(DEFAULT_YAML);
@@ -172,7 +186,6 @@ export function usePlayground() {
   const configBadge = ref("Python");
   const engineTone = ref<Tone>("ready");
   const configTone = ref<Tone>("ready");
-  const splitRatio = ref(52);
   const yamlCopied = ref(false);
   const outputCopied = ref(false);
 
@@ -194,9 +207,7 @@ export function usePlayground() {
   let lastLineCount = 0;
   let dragging = false;
   let renderQueuedSource = "";
-  let yamlCopyTimer = 0;
-  let outputCopyTimer = 0;
-  const cleanup: Array<() => void> = [];
+  const copyTimers: Record<"yaml" | "output", number> = { yaml: 0, output: 0 };
 
   function setBusy(active: boolean, label = "Parsing YAML"): void {
     busy.value = active;
@@ -207,7 +218,7 @@ export function usePlayground() {
     if (!lineNumbersRef.value) {
       return;
     }
-    const lineCount = source.length === 0 ? 1 : source.split("\n").length;
+    const lineCount = countLines(source);
     if (lineCount === lastLineCount) {
       return;
     }
@@ -353,7 +364,7 @@ await micropip.install("./wheels/${config.wheel_file}")
     const ratio = isMobileLayout()
       ? ((clientY - rect.top) / rect.height) * 100
       : ((clientX - rect.left) / rect.width) * 100;
-    splitRatio.value = setSplitRatio(ratio);
+    setSplitRatio(ratio);
   }
 
   function toggleTheme(): void {
@@ -363,23 +374,22 @@ await micropip.install("./wheels/${config.wheel_file}")
   }
 
   function flashCopied(kind: "yaml" | "output"): void {
-    const isYaml = kind === "yaml";
-    const clearTimer = isYaml ? yamlCopyTimer : outputCopyTimer;
-    if (clearTimer) {
-      window.clearTimeout(clearTimer);
+    if (copyTimers[kind]) {
+      window.clearTimeout(copyTimers[kind]);
     }
 
-    if (isYaml) {
+    if (kind === "yaml") {
       yamlCopied.value = true;
-      yamlCopyTimer = window.setTimeout(() => {
-        yamlCopied.value = false;
-      }, 1100);
-      return;
+    } else {
+      outputCopied.value = true;
     }
 
-    outputCopied.value = true;
-    outputCopyTimer = window.setTimeout(() => {
-      outputCopied.value = false;
+    copyTimers[kind] = window.setTimeout(() => {
+      if (kind === "yaml") {
+        yamlCopied.value = false;
+      } else {
+        outputCopied.value = false;
+      }
     }, 1100);
   }
 
@@ -420,7 +430,7 @@ await micropip.install("./wheels/${config.wheel_file}")
   onMounted(() => {
     theme.value = readTheme();
     applyTheme(theme.value);
-    splitRatio.value = restoreSplitRatio();
+    restoreSplitRatio();
     scheduleHighlight();
     void boot();
 
@@ -439,27 +449,26 @@ await micropip.install("./wheels/${config.wheel_file}")
       document.body.style.userSelect = "";
     };
     const onResize = () => {
-      splitRatio.value = restoreSplitRatio();
+      restoreSplitRatio();
     };
 
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
     window.addEventListener("resize", onResize, { passive: true });
-    cleanup.push(() => window.removeEventListener("pointermove", onPointerMove));
-    cleanup.push(() => window.removeEventListener("pointerup", onPointerUp));
-    cleanup.push(() => window.removeEventListener("pointercancel", onPointerUp));
-    cleanup.push(() => window.removeEventListener("resize", onResize));
-  });
 
-  onBeforeUnmount(() => {
-    cleanup.forEach((fn) => fn());
-    window.clearTimeout(renderTimer);
-    window.clearTimeout(yamlCopyTimer);
-    window.clearTimeout(outputCopyTimer);
-    if (highlightFrame) {
-      window.cancelAnimationFrame(highlightFrame);
-    }
+    onBeforeUnmount(() => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+      window.removeEventListener("resize", onResize);
+      window.clearTimeout(renderTimer);
+      window.clearTimeout(copyTimers.yaml);
+      window.clearTimeout(copyTimers.output);
+      if (highlightFrame) {
+        window.cancelAnimationFrame(highlightFrame);
+      }
+    });
   });
 
   return {
@@ -477,9 +486,7 @@ await micropip.install("./wheels/${config.wheel_file}")
     output,
     outputCopied,
     renderError,
-    scheduleHighlight,
     setSplitFromPointer,
-    splitRatio,
     themeButtonLabel,
     toggleTheme,
     yamlInput,

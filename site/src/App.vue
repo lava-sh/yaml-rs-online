@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CopyButton from "./CopyButton.vue";
 import { usePlayground } from "./playground";
 
 const {
@@ -36,6 +37,22 @@ const {
         <div class="topbar-links">
           <a
             class="topbar-link"
+            href="https://pypi.org/project/yaml-rs/"
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label="PyPI"
+            title="PyPI"
+          >
+            <img
+              class="topbar-icon"
+              src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/pypi.svg"
+              alt=""
+              aria-hidden="true"
+            />
+            <span class="topbar-link-text">PyPI</span>
+          </a>
+          <a
+            class="topbar-link"
             href="https://github.com/lava-sh/yaml-rs"
             target="_blank"
             rel="noreferrer noopener"
@@ -54,21 +71,7 @@ const {
               alt=""
               aria-hidden="true"
             />
-          </a>
-          <a
-            class="topbar-link"
-            href="https://pypi.org/project/yaml-rs/"
-            target="_blank"
-            rel="noreferrer noopener"
-            aria-label="PyPI"
-            title="PyPI"
-          >
-            <img
-              class="topbar-icon"
-              src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/pypi.svg"
-              alt=""
-              aria-hidden="true"
-            />
+            <span class="topbar-link-text">GitHub</span>
           </a>
         </div>
       </div>
@@ -129,28 +132,12 @@ const {
         <article class="panel">
           <header class="panel-head">
             <h2>YAML v1.2</h2>
-            <button
-              class="copy-btn"
-              :class="{ copied: yamlCopied }"
-              type="button"
-              aria-label="Copy YAML"
+            <CopyButton
+              :copied="yamlCopied"
+              label="Copy YAML"
               title="Copy YAML"
               @click="copyText(yamlInput, 'yaml')"
-            >
-              <svg class="copy-icon copy-idle" viewBox="0 0 24 24" aria-hidden="true">
-                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
-                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-                <path d="M16 4h2a2 2 0 0 1 2 2v4" />
-                <path d="M21 14H11" />
-                <path d="m15 10-4 4 4 4" />
-              </svg>
-              <svg class="copy-icon copy-done" viewBox="0 0 24 24" aria-hidden="true">
-                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
-                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-                <path d="M16 4h2a2 2 0 0 1 2 2v4" />
-                <path d="m9 14 2 2 4-4" />
-              </svg>
-            </button>
+            />
           </header>
 
           <div class="editor-wrap">
@@ -183,28 +170,12 @@ const {
         <article class="panel panel-output" :class="{ 'is-busy': busy }">
           <header class="panel-head">
             <h2>Python</h2>
-            <button
-              class="copy-btn"
-              :class="{ copied: outputCopied }"
-              type="button"
-              aria-label="Copy output"
+            <CopyButton
+              :copied="outputCopied"
+              label="Copy output"
               title="Copy output"
               @click="copyText(output, 'output')"
-            >
-              <svg class="copy-icon copy-idle" viewBox="0 0 24 24" aria-hidden="true">
-                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
-                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-                <path d="M16 4h2a2 2 0 0 1 2 2v4" />
-                <path d="M21 14H11" />
-                <path d="m15 10-4 4 4 4" />
-              </svg>
-              <svg class="copy-icon copy-done" viewBox="0 0 24 24" aria-hidden="true">
-                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
-                <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-                <path d="M16 4h2a2 2 0 0 1 2 2v4" />
-                <path d="m9 14 2 2 4-4" />
-              </svg>
-            </button>
+            />
           </header>
 
           <div class="output-wrap">
