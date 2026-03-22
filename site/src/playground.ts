@@ -157,7 +157,6 @@ async function buildShareUrl(yamlSource: string): Promise<string> {
 async function writeClipboardText(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
-    return;
   } catch {
     const helper = document.createElement("textarea");
     helper.value = text;
