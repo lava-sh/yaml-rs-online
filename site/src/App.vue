@@ -194,10 +194,7 @@ const {
           </header>
 
           <div class="output-wrap">
-            <pre
-              v-if="renderError"
-              :class="{ err: renderError }"
-            >{{ output }}</pre>
+            <pre v-if="renderError" :class="{ err: renderError }">{{ output }}</pre>
             <pre v-else class="python-highlight" v-html="outputHighlight"></pre>
             <div class="py-status" aria-live="polite" :aria-hidden="busy ? 'false' : 'true'">
               <span class="py-spinner" aria-hidden="true"></span>

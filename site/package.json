@@ -6,8 +6,8 @@
     "dev": "bun run --bun vite",
     "build": "bun run --bun vite build",
     "preview": "bun run --bun vite preview",
-    "lint": "oxlint src --deny-warnings",
-    "format": "oxfmt --write src package.json tsconfig.json"
+    "lint": "oxlint src",
+    "fmt": "oxfmt --write src package.json tsconfig.json"
   },
   "dependencies": {
     "highlight.js": "11.11.1",
