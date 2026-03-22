@@ -38,6 +38,7 @@ jobs:
       - name: "Download yaml-rs wheel for Pyodide"
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           PYODIDE_VERSION: ${{ steps.config.outputs.pyodide_version }}
           WHEEL_VERSION: ${{ steps.config.outputs.wheel_version }}
           WHEEL_PATTERN: ${{ steps.config.outputs.wheel_pattern }}
