@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CopyButton from "./components/buttons/CopyButton.vue";
+import ShareButton from "./components/buttons/ShareButton.vue";
 import { usePlayground } from "./playground";
 
 const {
@@ -18,11 +19,13 @@ const {
   outputHighlight,
   outputCopied,
   renderError,
+  shareYamlLink,
   startDrag,
   themeButtonLabel,
   toggleTheme,
   yamlInput,
   yamlCopied,
+  yamlShared,
   syncYamlScroll,
   setSplitFromPointer,
 } = usePlayground();
@@ -134,6 +137,12 @@ const {
           <header class="panel-head">
             <h2>YAML v1.2</h2>
             <div class="panel-actions">
+              <ShareButton
+                :shared="yamlShared"
+                label="Share YAML"
+                title="Share YAML"
+                @click="shareYamlLink"
+              />
               <CopyButton
                 :copied="yamlCopied"
                 label="Copy YAML"

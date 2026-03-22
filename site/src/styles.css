@@ -265,6 +265,7 @@ textarea {
 }
 
 :root[data-theme="light"] .theme-btn,
+:root[data-theme="light"] .share-btn,
 :root[data-theme="light"] .copy-btn,
 :root[data-theme="light"] .badge {
   background: rgba(255, 255, 255, 0.78);
@@ -284,6 +285,7 @@ textarea {
 }
 
 :root[data-theme="light"] .topbar-link:hover,
+:root[data-theme="light"] .share-btn:hover,
 :root[data-theme="light"] .theme-btn:hover,
 :root[data-theme="light"] .copy-btn:hover {
   background: rgba(78, 86, 120, 0.06);
@@ -446,6 +448,61 @@ textarea {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   background: rgba(255, 255, 255, 0.06);
   transform: translateY(-1px);
+}
+
+.share-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0.5px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease,
+    transform 140ms ease,
+    border-radius 140ms ease;
+}
+
+.share-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 21px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+  transition:
+    opacity 140ms ease,
+    transform 180ms ease;
+}
+
+.share-btn.shared {
+  border-radius: 8px;
+  color: var(--ok);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.share-btn:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.share-btn.shared:hover {
+  color: var(--ok);
 }
 
 .divider {

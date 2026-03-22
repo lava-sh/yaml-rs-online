@@ -41,10 +41,7 @@ app:
     password: "password"
     host: "127.0.0.1"
     port: 3306
-    db_name: "database"
-theme:
-  accent: violet
-  mode: dark`;
+    db_name: "database"`;
 
 const PARSE_CODE = `
 from pprint import pformat
@@ -62,9 +59,99 @@ result
 const THEME_KEY = "yaml-rs-theme";
 const SPLIT_KEY = "yaml-rs-split";
 const HLJS_MAX_LENGTH = 20_000;
+const YAML_HASH_KEY = "yaml";
+const YAML_COMPRESSED_HASH_KEY = "yamlz";
 
 function escapeHtml(text: string): string {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function toBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function fromBase64Url(text: string): Uint8Array {
+  const normalized = text.replaceAll("-", "+").replaceAll("_", "/");
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+async function compressText(text: string): Promise<string | null> {
+  if (typeof CompressionStream === "undefined") {
+    return null;
+  }
+
+  try {
+    const stream = new CompressionStream("deflate-raw");
+    const writer = stream.writable.getWriter();
+    const compression = (async () => {
+      await writer.write(new TextEncoder().encode(text));
+      await writer.close();
+      const compressed = new Uint8Array(await new Response(stream.readable).arrayBuffer());
+      return toBase64Url(compressed);
+    })();
+
+    const result = await Promise.race<string | null>([
+      compression,
+      new Promise<null>((resolve) => {
+        window.setTimeout(() => resolve(null), 150);
+      }),
+    ]);
+    if (result === null) {
+      return null;
+    }
+
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+async function decompressText(text: string): Promise<string | null> {
+  if (typeof DecompressionStream === "undefined") {
+    return null;
+  }
+
+  try {
+    const stream = new DecompressionStream("deflate-raw");
+    const writer = stream.writable.getWriter();
+    await writer.write(fromBase64Url(text));
+    await writer.close();
+    const result = await new Response(stream.readable).arrayBuffer();
+    return new TextDecoder().decode(result);
+  } catch {
+    return null;
+  }
+}
+
+function encodePlainText(text: string): string {
+  return toBase64Url(new TextEncoder().encode(text));
+}
+
+function decodePlainText(text: string): string {
+  return new TextDecoder().decode(fromBase64Url(text));
+}
+
+async function buildShareUrl(yamlSource: string): Promise<string> {
+  const url = new URL(window.location.href);
+  const params = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : "");
+  params.delete(YAML_HASH_KEY);
+  params.delete(YAML_COMPRESSED_HASH_KEY);
+
+  const compressed = await compressText(yamlSource);
+  if (compressed) {
+    params.set(YAML_COMPRESSED_HASH_KEY, compressed);
+  } else {
+    params.set(YAML_HASH_KEY, encodePlainText(yamlSource));
+  }
+
+  url.hash = params.toString();
+  return url.toString();
 }
 
 async function writeClipboardText(text: string): Promise<void> {
@@ -87,6 +174,33 @@ async function writeClipboardText(text: string): Promise<void> {
     if (!copied) {
       throw new Error("Copy command failed");
     }
+  }
+}
+
+async function readSharedYaml(): Promise<string | null> {
+  const hash = window.location.hash;
+  if (!hash.startsWith("#")) {
+    return null;
+  }
+
+  const params = new URLSearchParams(hash.slice(1));
+  const compressed = params.get(YAML_COMPRESSED_HASH_KEY);
+  if (compressed) {
+    const decoded = await decompressText(compressed);
+    if (decoded !== null) {
+      return decoded;
+    }
+  }
+
+  const plain = params.get(YAML_HASH_KEY);
+  if (!plain) {
+    return null;
+  }
+
+  try {
+    return decodePlainText(plain);
+  } catch {
+    return null;
   }
 }
 
@@ -211,6 +325,7 @@ export function usePlayground() {
   const engineTone = ref<Tone>("ready");
   const configTone = ref<Tone>("ready");
   const yamlCopied = ref(false);
+  const yamlShared = ref(false);
   const outputCopied = ref(false);
 
   const inputRef = ref<HTMLTextAreaElement | null>(null);
@@ -231,7 +346,11 @@ export function usePlayground() {
   let lastLineCount = 0;
   let dragging = false;
   let renderQueuedSource = "";
-  const feedbackTimers: Record<"yaml" | "output", number> = { yaml: 0, output: 0 };
+  const feedbackTimers: Record<"yaml" | "output" | "share", number> = {
+    yaml: 0,
+    output: 0,
+    share: 0,
+  };
 
   function setBusy(active: boolean, label = "Parsing YAML"): void {
     busy.value = active;
@@ -421,13 +540,15 @@ await micropip.install("./wheels/${config.wheel_file}")
     applyTheme(theme.value);
   }
 
-  function flashFeedback(kind: "yaml" | "output"): void {
+  function flashFeedback(kind: "yaml" | "output" | "share"): void {
     if (feedbackTimers[kind]) {
       window.clearTimeout(feedbackTimers[kind]);
     }
 
     if (kind === "yaml") {
       yamlCopied.value = true;
+    } else if (kind === "share") {
+      yamlShared.value = true;
     } else {
       outputCopied.value = true;
     }
@@ -435,6 +556,8 @@ await micropip.install("./wheels/${config.wheel_file}")
     feedbackTimers[kind] = window.setTimeout(() => {
       if (kind === "yaml") {
         yamlCopied.value = false;
+      } else if (kind === "share") {
+        yamlShared.value = false;
       } else {
         outputCopied.value = false;
       }
@@ -444,6 +567,22 @@ await micropip.install("./wheels/${config.wheel_file}")
   async function copyText(text: string, kind: "yaml" | "output"): Promise<void> {
     await writeClipboardText(text);
     flashFeedback(kind);
+  }
+
+  async function shareYamlLink(): Promise<void> {
+    try {
+      const shareUrl = await buildShareUrl(yamlInput.value);
+      window.history.replaceState(null, "", shareUrl);
+
+      yamlCopied.value = false;
+      if (feedbackTimers.yaml) {
+        window.clearTimeout(feedbackTimers.yaml);
+      }
+      flashFeedback("share");
+      await writeClipboardText(shareUrl);
+    } catch {
+      yamlShared.value = false;
+    }
   }
 
   const onPointerMove = (event: PointerEvent) => {
@@ -474,10 +613,14 @@ await micropip.install("./wheels/${config.wheel_file}")
     }, 120);
   });
 
-  onMounted(() => {
+  onMounted(async () => {
     theme.value = readTheme();
     applyTheme(theme.value);
     restoreSplitRatio();
+    const sharedYaml = await readSharedYaml();
+    if (sharedYaml !== null) {
+      yamlInput.value = sharedYaml;
+    }
     scheduleHighlight();
     void boot();
 
@@ -495,6 +638,7 @@ await micropip.install("./wheels/${config.wheel_file}")
     window.clearTimeout(renderTimer);
     window.clearTimeout(feedbackTimers.yaml);
     window.clearTimeout(feedbackTimers.output);
+    window.clearTimeout(feedbackTimers.share);
     if (highlightFrame) {
       window.cancelAnimationFrame(highlightFrame);
     }
@@ -517,10 +661,12 @@ await micropip.install("./wheels/${config.wheel_file}")
     outputCopied,
     renderError,
     setSplitFromPointer,
+    shareYamlLink,
     themeButtonLabel,
     toggleTheme,
     yamlInput,
     yamlCopied,
+    yamlShared,
     startDrag() {
       dragging = true;
       document.body.classList.add("is-resizing");
