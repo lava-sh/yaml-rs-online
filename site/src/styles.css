@@ -61,10 +61,13 @@ textarea {
 
 .page-shell {
   width: 100%;
-  max-width: none;
+  max-width: 100vw;
   margin: 0;
   display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100dvh;
   gap: 0;
+  overflow: hidden;
 }
 
 .topbar {
@@ -73,17 +76,16 @@ textarea {
   justify-content: space-between;
   gap: 12px;
   padding: 8px 16px;
-  border-radius: 0;
-  border: 0;
-  box-shadow: none;
   backdrop-filter: blur(10px);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
 }
 
 .workbench {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   border-top: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
-  box-shadow: none;
   backdrop-filter: blur(10px);
 }
 
@@ -98,6 +100,7 @@ textarea {
 
 .topbar-links {
   flex-wrap: wrap;
+  gap: 4px;
 }
 
 .brand,
@@ -173,6 +176,7 @@ textarea {
   color: var(--bg);
   background: rgba(255, 255, 255, 0.08);
   cursor: pointer;
+  overflow: hidden;
   transition: border-color 180ms ease;
 }
 
@@ -297,12 +301,6 @@ textarea {
   background: rgba(22, 101, 52, 0.08);
 }
 
-.workbench {
-  padding: 0;
-  border-radius: 0;
-  border-bottom: 0;
-}
-
 .badge {
   display: inline-flex;
   align-items: center;
@@ -327,8 +325,8 @@ textarea {
 
 .split {
   display: flex;
-  min-height: calc(100dvh - 55px);
-  border-radius: 0;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   background: var(--panel-3);
 }
@@ -353,7 +351,7 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 10px 88px 10px 12px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.02);
   position: relative;
@@ -376,80 +374,7 @@ textarea {
   align-items: center;
 }
 
-.panel-actions-spacer {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 auto;
-}
-
-.copy-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 0.5px solid var(--line);
-  border-radius: 8px;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.04);
-  cursor: pointer;
-  transition:
-    color 140ms ease,
-    border-color 140ms ease,
-    background-color 140ms ease,
-    transform 140ms ease,
-    border-radius 140ms ease;
-}
-
-.copy-icon {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.9;
-  transition:
-    opacity 140ms ease,
-    transform 180ms ease,
-    color 140ms ease;
-}
-
-.copy-done {
-  opacity: 0;
-  transform: scale(0.82);
-}
-
-.copy-btn.copied {
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--ok);
-}
-
-.copy-btn.copied .copy-idle {
-  opacity: 0;
-  transform: scale(0.82);
-}
-
-.copy-btn.copied .copy-done {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.copy-btn:hover {
-  color: var(--text);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-  background: rgba(255, 255, 255, 0.06);
-  transform: translateY(-1px);
-}
-
+.copy-btn,
 .share-btn {
   position: relative;
   display: inline-flex;
@@ -472,12 +397,11 @@ textarea {
     border-radius 140ms ease;
 }
 
+.copy-icon,
 .share-icon {
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 21px;
-  height: 18px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -485,15 +409,45 @@ textarea {
   stroke-width: 1.9;
   transition:
     opacity 140ms ease,
-    transform 180ms ease;
+    transform 180ms ease,
+    color 140ms ease;
 }
 
+.copy-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.share-icon {
+  width: 21px;
+  height: 18px;
+}
+
+.copy-done,
+.share-done {
+  opacity: 0;
+  transform: scale(0.82);
+}
+
+.copy-btn.copied,
 .share-btn.shared {
-  border-radius: 8px;
   color: var(--ok);
   background: rgba(255, 255, 255, 0.08);
 }
 
+.copy-btn.copied .copy-idle,
+.share-btn.shared .share-idle {
+  opacity: 0;
+  transform: scale(0.82);
+}
+
+.copy-btn.copied .copy-done,
+.share-btn.shared .share-done {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.copy-btn:hover,
 .share-btn:hover {
   color: var(--text);
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
@@ -501,6 +455,7 @@ textarea {
   transform: translateY(-1px);
 }
 
+.copy-btn.copied:hover,
 .share-btn.shared:hover {
   color: var(--ok);
 }
@@ -512,6 +467,7 @@ textarea {
   cursor: col-resize;
   border-inline: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.03);
+  touch-action: none;
 }
 
 .divider::before {
@@ -538,7 +494,8 @@ textarea {
 
 .editor-wrap {
   display: grid;
-  grid-template-columns: 46px 1fr;
+  grid-template-columns: 46px minmax(0, 1fr);
+  overflow: hidden;
 }
 
 textarea,
@@ -579,13 +536,13 @@ textarea {
   inset: 0 0 0 46px;
 }
 
-.yaml-highlight {
-  pointer-events: none;
+.yaml-highlight,
+.python-highlight {
   text-rendering: geometricPrecision;
 }
 
-.python-highlight {
-  text-rendering: geometricPrecision;
+.yaml-highlight {
+  pointer-events: none;
 }
 
 textarea {
@@ -660,34 +617,27 @@ textarea {
 }
 
 @media (max-width: 980px) {
-  .topbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .topbar-main,
-  .topbar-side {
-    width: 100%;
-    justify-content: space-between;
-  }
-
   .split {
     flex-direction: column;
-    min-height: auto;
+    min-height: 0;
+    flex: 1;
   }
 
   .panel:first-child,
   .panel-output {
     width: 100%;
+    overflow: hidden;
+    max-width: 100vw;
   }
 
   .panel:first-child {
-    height: var(--top-height);
+    min-height: 200px;
+    flex: 1;
   }
 
   .panel-output {
-    min-height: 320px;
-    height: calc(100% - var(--top-height));
+    min-height: 200px;
+    flex: 1;
   }
 
   .divider {
@@ -705,14 +655,90 @@ textarea {
 }
 
 @media (max-width: 640px) {
-  .topbar-main,
+  .topbar {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .topbar-main {
+    gap: 2px;
+  }
+
+  .topbar-links {
+    gap: 2px;
+  }
+
   .topbar-side {
-    flex-direction: column;
-    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .toolbar-badges {
+    display: none;
+  }
+
+  .theme-btn {
+    width: 38px;
+    height: 20px;
+    border-radius: 10px;
+  }
+
+  .theme-check {
+    width: 16px;
+    height: 16px;
+  }
+
+  .theme-icon-wrap {
+    width: 16px;
+    height: 16px;
+  }
+
+  .theme-icon {
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+  }
+
+  :root[data-theme="light"] .theme-check {
+    transform: translateX(18px);
+  }
+
+  .topbar-link-text {
+    display: none;
+  }
+
+  .topbar-link {
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0 4px;
+  }
+
+  .topbar-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .output-wrap {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .output-wrap pre {
+    width: max-content;
+    min-width: 100%;
+    height: auto;
+    min-height: 100%;
   }
 
   .editor-wrap {
-    grid-template-columns: 40px 1fr;
+    max-width: 100%;
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .badge {
+    font-size: 11px;
+    min-height: 22px;
+    padding: 0 6px;
   }
 
   .yaml-highlight,
@@ -722,8 +748,44 @@ textarea {
 
   textarea,
   pre {
-    padding: 4px 12px 12px;
-    font-size: 14px;
+    padding: 4px 10px 10px;
+    font-size: 13px;
+  }
+
+  .panel-head {
+    padding: 8px 10px;
+    gap: 6px;
+    justify-content: center;
+    min-height: 36px;
+    overflow: hidden;
+  }
+
+  .panel-head h2 {
+    font-size: 13px;
+  }
+
+  .panel-actions {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    gap: 4px;
+  }
+
+  .copy-btn,
+  .share-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .copy-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .share-icon {
+    width: 18px;
+    height: 16px;
   }
 }
 

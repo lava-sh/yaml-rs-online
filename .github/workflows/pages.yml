@@ -14,58 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
       - name: "Checkout"
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-
-      - name: "Read site config"
-        id: config
-        shell: bash
-        run: |
-          set -euxo pipefail
-          python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import tomllib
-          from pathlib import Path
-
-          config = tomllib.loads(Path("config.toml").read_text(encoding="utf-8"))
-          print(f"pyodide_version={config['pyodide_version']}")
-          print(f"wheel_version={config['wheel_version']}")
-          print(f"wheel_pattern={config['wheel_pattern']}")
-          PY
-
-      - name: "Download yaml-rs wheel for Pyodide"
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PYODIDE_VERSION: ${{ steps.config.outputs.pyodide_version }}
-          WHEEL_VERSION: ${{ steps.config.outputs.wheel_version }}
-          WHEEL_PATTERN: ${{ steps.config.outputs.wheel_pattern }}
-        run: |
-          set -euxo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/site/public/wheels"
-          rm -f "$GITHUB_WORKSPACE/site/public/wheels/"*.whl
-          if [ "$WHEEL_VERSION" = "latest" ]; then
-            gh release download \
-              --repo lava-sh/yaml-rs \
-              --pattern "$WHEEL_PATTERN" \
-              --dir "$GITHUB_WORKSPACE/site/public/wheels" \
-              --clobber
-          else
-            gh release download "$WHEEL_VERSION" \
-              --repo lava-sh/yaml-rs \
-              --pattern "*${WHEEL_VERSION}${WHEEL_PATTERN}" \
-              --dir "$GITHUB_WORKSPACE/site/public/wheels" \
-              --clobber
-          fi
-          wheel_file="$(basename "$(find "$GITHUB_WORKSPACE/site/public/wheels" -maxdepth 1 -type f -name '*.whl' | head -n 1)")"
-          test -n "$wheel_file"
-          cat > "$GITHUB_WORKSPACE/site/public/config.toml" <<EOF
-          pyodide_version = "${PYODIDE_VERSION}"
-          wheel_version = "${WHEEL_VERSION}"
-          wheel_file = "${wheel_file}"
-          EOF
 
       - name: "Setup Bun"
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0

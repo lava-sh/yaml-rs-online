@@ -8,6 +8,7 @@ const {
   busyLabel,
   configBadge,
   configTone,
+  versionBadge,
   copyText,
   dividerRef,
   engineBadge,
@@ -83,6 +84,7 @@ const {
         <div class="toolbar-badges">
           <span class="badge" :data-tone="engineTone">{{ engineBadge }}</span>
           <span class="badge" :data-tone="configTone">{{ configBadge }}</span>
+          <span class="badge" :data-tone="configTone">{{ versionBadge }}</span>
         </div>
         <button
           class="theme-btn"
@@ -173,7 +175,7 @@ const {
           aria-label="Resize panels"
           @pointerdown.prevent="
             ($event) => {
-              startDrag();
+              startDrag($event);
               setSplitFromPointer($event.clientX, $event.clientY);
             }
           "
@@ -183,7 +185,6 @@ const {
           <header class="panel-head">
             <h2>Python</h2>
             <div class="panel-actions">
-              <span class="panel-actions-spacer" aria-hidden="true"></span>
               <CopyButton
                 :copied="outputCopied"
                 label="Copy output"

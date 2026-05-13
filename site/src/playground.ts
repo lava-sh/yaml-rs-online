@@ -2,17 +2,18 @@ import hljs from "highlight.js/lib/core";
 import python from "highlight.js/lib/languages/python";
 import yaml from "highlight.js/lib/languages/yaml";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import configRaw from "../../config.toml?raw";
 
 hljs.registerLanguage("yaml", yaml);
 hljs.registerLanguage("python", python);
 
 type Theme = "light" | "dark";
 
-type Tone = "muted" | "ready" | "warn";
+type Tone = "ready" | "warn";
 
 type SiteConfig = {
   pyodide_version: string;
-  wheel_file: string;
+  yaml_rs_version: string;
 };
 
 type PyodideRuntime = {
@@ -96,17 +97,12 @@ async function compressText(text: string): Promise<string | null> {
       return toBase64Url(compressed);
     })();
 
-    const result = await Promise.race<string | null>([
+    return await Promise.race<string | null>([
       compression,
       new Promise<null>((resolve) => {
         window.setTimeout(() => resolve(null), 150);
       }),
     ]);
-    if (result === null) {
-      return null;
-    }
-
-    return result;
   } catch {
     return null;
   }
@@ -203,7 +199,7 @@ async function readSharedYaml(): Promise<string | null> {
   }
 }
 
-function parseSimpleToml(source: string): SiteConfig {
+function parseConfig(source: string): SiteConfig {
   const entries = Object.fromEntries(
     Array.from(source.matchAll(/^\s*([a-z_]+)\s*=\s*"([^"]*)"\s*$/gim), ([, key, value]) => [
       key,
@@ -211,34 +207,19 @@ function parseSimpleToml(source: string): SiteConfig {
     ]),
   );
   const pyodideVersion = entries.pyodide_version;
-  const wheelFile = entries.wheel_file;
+  const yamlRsVersion = entries.yaml_rs_version;
 
-  if (!pyodideVersion || !wheelFile) {
-    throw new Error("Invalid config.toml: expected pyodide_version and wheel_file");
+  if (!pyodideVersion || !yamlRsVersion) {
+    throw new Error("Invalid config.toml: expected pyodide_version and yaml_rs_version");
   }
 
   return {
     pyodide_version: pyodideVersion,
-    wheel_file: wheelFile,
+    yaml_rs_version: yamlRsVersion,
   };
 }
 
-function getPythonBadgeFromWheelFile(wheelFile: string): string {
-  const match = wheelFile.match(/cp(\d)(\d{2})/i);
-  if (!match) {
-    return "Python";
-  }
-
-  return `Python ${match[1]}.${match[2]}`;
-}
-
-async function loadConfig(): Promise<SiteConfig> {
-  const response = await fetch("./config.toml", { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Failed to load config.toml: ${response.status}`);
-  }
-  return parseSimpleToml(await response.text());
-}
+const CONFIG = parseConfig(configRaw);
 
 function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -297,18 +278,29 @@ function restoreSplitRatio(): number {
   return Number.isFinite(saved) ? setSplitRatio(saved) : setSplitRatio(52);
 }
 
-function countLines(source: string): number {
-  if (source.length === 0) {
-    return 1;
+async function findWheelUrl(version: string): Promise<string> {
+  const resp = await fetch(`https://pypi.org/pypi/yaml-rs/${version}/json`);
+  if (!resp.ok) {
+    throw new Error(`PyPI lookup failed: ${resp.status}`);
   }
+  const data = await resp.json();
+  const whl = (data.urls as { filename: string; url: string }[]).find((u) =>
+    u.filename.includes("pyemscripten_2025_0"),
+  );
+  if (!whl) {
+    throw new Error(`No pyemscripten wheel found for yaml-rs==${version}`);
+  }
+  return whl.url;
+}
 
-  let lines = 1;
-  for (let i = 0; i < source.length; i += 1) {
-    if (source.charCodeAt(i) === 10) {
-      lines += 1;
-    }
+function countLines(source: string): number {
+  let n = 1;
+  let i = source.indexOf("\n");
+  while (i !== -1) {
+    n += 1;
+    i = source.indexOf("\n", i + 1);
   }
-  return lines;
+  return n;
 }
 
 export function usePlayground() {
@@ -321,6 +313,7 @@ export function usePlayground() {
   const renderError = ref(false);
   const engineBadge = ref("Pyodide loading");
   const configBadge = ref("Python");
+  const versionBadge = ref("yaml-rs");
   const engineTone = ref<Tone>("ready");
   const configTone = ref<Tone>("ready");
   const yamlCopied = ref(false);
@@ -395,16 +388,10 @@ export function usePlayground() {
   }
 
   function renderOutputHighlight(source: string): void {
-    if (renderError.value) {
+    if (renderError.value || source.length > HLJS_MAX_LENGTH) {
       outputHighlight.value = escapeHtml(source);
       return;
     }
-
-    if (source.length > HLJS_MAX_LENGTH) {
-      outputHighlight.value = escapeHtml(source);
-      return;
-    }
-
     try {
       outputHighlight.value = hljs.highlight(source, {
         language: "python",
@@ -472,29 +459,25 @@ export function usePlayground() {
     }
   }
 
-  async function installWheel(config: SiteConfig): Promise<void> {
+  async function installWheel(): Promise<void> {
     if (!pyodide) {
       throw new Error("Pyodide is not initialized");
     }
 
+    const wheelUrl = await findWheelUrl(CONFIG.yaml_rs_version);
     await pyodide.runPythonAsync(`
 import micropip
-await micropip.install("./wheels/${config.wheel_file}")
+await micropip.install("${wheelUrl}")
 `);
   }
 
   async function boot(): Promise<void> {
-    setBusy(true, "Loading config");
-
     try {
-      const config = await loadConfig();
-      engineBadge.value = `Pyodide ${config.pyodide_version}`;
-      configBadge.value = getPythonBadgeFromWheelFile(config.wheel_file);
-      engineTone.value = "ready";
-      configTone.value = "ready";
+      engineBadge.value = `Pyodide ${CONFIG.pyodide_version}`;
+      versionBadge.value = `yaml-rs ${CONFIG.yaml_rs_version}`;
 
       setBusy(true, "Loading Pyodide");
-      const pyodideBase = `https://cdn.jsdelivr.net/pyodide/v${config.pyodide_version}/full/`;
+      const pyodideBase = `https://cdn.jsdelivr.net/pyodide/v${CONFIG.pyodide_version}/full/`;
       await loadScript(`${pyodideBase}pyodide.js`);
 
       if (!window.loadPyodide) {
@@ -502,11 +485,15 @@ await micropip.install("./wheels/${config.wheel_file}")
       }
 
       pyodide = await window.loadPyodide({ indexURL: pyodideBase });
+      const pyVersion = await pyodide.runPythonAsync(
+        "import sys; f'{sys.version_info.major}.{sys.version_info.minor}'",
+      );
+      configBadge.value = `Python ${pyVersion}`;
       setBusy(true, "Loading micropip");
       await pyodide.loadPackage("micropip");
 
       setBusy(true, "Installing yaml-rs");
-      await installWheel(config);
+      await installWheel();
 
       engineTone.value = "ready";
       await renderYaml();
@@ -539,33 +526,24 @@ await micropip.install("./wheels/${config.wheel_file}")
     applyTheme(theme.value);
   }
 
+  const feedbackRefs = { yaml: yamlCopied, output: outputCopied, share: yamlShared };
+
   function flashFeedback(kind: "yaml" | "output" | "share"): void {
     if (feedbackTimers[kind]) {
       window.clearTimeout(feedbackTimers[kind]);
     }
-
-    if (kind === "yaml") {
-      yamlCopied.value = true;
-    } else if (kind === "share") {
-      yamlShared.value = true;
-    } else {
-      outputCopied.value = true;
-    }
-
+    const target = feedbackRefs[kind];
+    target.value = true;
     feedbackTimers[kind] = window.setTimeout(() => {
-      if (kind === "yaml") {
-        yamlCopied.value = false;
-      } else if (kind === "share") {
-        yamlShared.value = false;
-      } else {
-        outputCopied.value = false;
-      }
+      target.value = false;
     }, 1100);
   }
 
   async function copyText(text: string, kind: "yaml" | "output"): Promise<void> {
-    await writeClipboardText(text);
     flashFeedback(kind);
+    try {
+      await writeClipboardText(text);
+    } catch {}
   }
 
   async function shareYamlLink(): Promise<void> {
@@ -648,6 +626,7 @@ await micropip.install("./wheels/${config.wheel_file}")
     busyLabel,
     configBadge,
     configTone,
+    versionBadge,
     copyText,
     dividerRef,
     engineBadge,
@@ -666,10 +645,11 @@ await micropip.install("./wheels/${config.wheel_file}")
     yamlInput,
     yamlCopied,
     yamlShared,
-    startDrag() {
+    startDrag(event: PointerEvent) {
       dragging = true;
       document.body.classList.add("is-resizing");
       document.body.style.userSelect = "none";
+      (event.currentTarget as Element)?.setPointerCapture(event.pointerId);
     },
     syncYamlScroll,
   };
