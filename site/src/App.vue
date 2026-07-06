@@ -7,7 +7,6 @@ const {
   busy,
   busyLabel,
   configBadge,
-  configTone,
   versionBadge,
   copyText,
   dividerRef,
@@ -83,8 +82,8 @@ const {
       <div class="topbar-side">
         <div class="toolbar-badges">
           <span class="badge" :data-tone="engineTone">{{ engineBadge }}</span>
-          <span class="badge" :data-tone="configTone">{{ configBadge }}</span>
-          <span class="badge" :data-tone="configTone">{{ versionBadge }}</span>
+          <span class="badge" data-tone="ready">{{ configBadge }}</span>
+          <span class="badge" data-tone="ready">{{ versionBadge }}</span>
         </div>
         <button
           class="theme-btn"

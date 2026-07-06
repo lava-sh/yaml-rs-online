@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/require-post-message-target-origin */
 import hljs from "highlight.js/lib/core";
 import python from "highlight.js/lib/languages/python";
 import yaml from "highlight.js/lib/languages/yaml";
@@ -16,20 +17,6 @@ type SiteConfig = {
   yaml_rs_version: string;
 };
 
-type PyodideRuntime = {
-  globals: {
-    set: (name: string, value: string) => void;
-  };
-  loadPackage: (name: string) => Promise<void>;
-  runPythonAsync: (code: string) => Promise<string>;
-};
-
-declare global {
-  interface Window {
-    loadPyodide?: (options?: { indexURL?: string }) => Promise<PyodideRuntime>;
-  }
-}
-
 const DEFAULT_YAML = `# Paste YAML here:
 app:
   local: true
@@ -43,19 +30,6 @@ app:
     host: "127.0.0.1"
     port: 3306
     db_name: "database"`;
-
-const PARSE_CODE = `
-from pprint import pformat
-import yaml_rs
-
-try:
-    parsed = yaml_rs.loads(yaml_input)
-    result = pformat(parsed, width=80, sort_dicts=False)
-except yaml_rs.YAMLDecodeError as exc:
-    result = f"{exc}"
-
-result
-`;
 
 const THEME_KEY = "yaml-rs-theme";
 const SPLIT_KEY = "yaml-rs-split";
@@ -221,32 +195,6 @@ function parseConfig(source: string): SiteConfig {
 
 const CONFIG = parseConfig(configRaw);
 
-function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
-    if (existing) {
-      if (typeof window.loadPyodide === "function") {
-        resolve();
-        return;
-      }
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), {
-        once: true,
-      });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = src;
-    script.async = true;
-    script.addEventListener("load", () => resolve(), { once: true });
-    script.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), {
-      once: true,
-    });
-    document.head.append(script);
-  });
-}
-
 function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
 }
@@ -278,21 +226,6 @@ function restoreSplitRatio(): number {
   return Number.isFinite(saved) ? setSplitRatio(saved) : setSplitRatio(52);
 }
 
-async function findWheelUrl(version: string): Promise<string> {
-  const resp = await fetch(`https://pypi.org/pypi/yaml-rs/${version}/json`);
-  if (!resp.ok) {
-    throw new Error(`PyPI lookup failed: ${resp.status}`);
-  }
-  const data = await resp.json();
-  const whl = (data.urls as { filename: string; url: string }[]).find((u) =>
-    u.filename.includes("pyemscripten_2025_0"),
-  );
-  if (!whl) {
-    throw new Error(`No pyemscripten wheel found for yaml-rs==${version}`);
-  }
-  return whl.url;
-}
-
 function countLines(source: string): number {
   let n = 1;
   let i = source.indexOf("\n");
@@ -315,7 +248,6 @@ export function usePlayground() {
   const configBadge = ref("Python");
   const versionBadge = ref("yaml-rs");
   const engineTone = ref<Tone>("ready");
-  const configTone = ref<Tone>("ready");
   const yamlCopied = ref(false);
   const yamlShared = ref(false);
   const outputCopied = ref(false);
@@ -329,11 +261,9 @@ export function usePlayground() {
     theme.value === "dark" ? "Switch to light" : "Switch to dark",
   );
 
-  let pyodide: PyodideRuntime | undefined;
+  let runtimeWorker: Worker | undefined;
   let renderTimer = 0;
   let highlightFrame = 0;
-  let renderSeq = 0;
-  let pendingRenders = 0;
   let lastHighlightSource = "";
   let lastLineCount = 0;
   let dragging = false;
@@ -388,7 +318,7 @@ export function usePlayground() {
   }
 
   function renderOutputHighlight(source: string): void {
-    if (renderError.value || source.length > HLJS_MAX_LENGTH) {
+    if (source.length > HLJS_MAX_LENGTH) {
       outputHighlight.value = escapeHtml(source);
       return;
     }
@@ -425,87 +355,46 @@ export function usePlayground() {
     });
   }
 
-  async function renderYaml(): Promise<void> {
-    if (!pyodide) {
+  function renderYaml(): void {
+    if (!runtimeWorker) {
       return;
     }
-
-    const seq = ++renderSeq;
-    pendingRenders += 1;
-    setBusy(true, "Parsing YAML");
-    pyodide.globals.set("yaml_input", yamlInput.value);
-
-    try {
-      const result = await pyodide.runPythonAsync(PARSE_CODE);
-      if (seq !== renderSeq) {
-        return;
-      }
-      renderError.value = false;
-      output.value = result;
-      renderOutputHighlight(result);
-      engineTone.value = "ready";
-    } catch (error) {
-      if (seq !== renderSeq) {
-        return;
-      }
-      renderError.value = true;
-      output.value = String(error);
-      renderOutputHighlight(String(error));
-      engineBadge.value = "Runtime error";
-      engineTone.value = "warn";
-    } finally {
-      pendingRenders = Math.max(0, pendingRenders - 1);
-      setBusy(pendingRenders > 0, pendingRenders > 0 ? "Parsing YAML" : "Idle");
-    }
+    runtimeWorker.postMessage({ type: "render", yaml: yamlInput.value });
   }
 
-  async function installWheel(): Promise<void> {
-    if (!pyodide) {
-      throw new Error("Pyodide is not initialized");
-    }
+  function boot(): void {
+    engineBadge.value = `Pyodide ${CONFIG.pyodide_version}`;
+    versionBadge.value = `yaml-rs ${CONFIG.yaml_rs_version}`;
+    setBusy(true, "Loading Pyodide");
 
-    const wheelUrl = await findWheelUrl(CONFIG.yaml_rs_version);
-    await pyodide.runPythonAsync(`
-import micropip
-await micropip.install("${wheelUrl}")
-`);
-  }
-
-  async function boot(): Promise<void> {
-    try {
-      engineBadge.value = `Pyodide ${CONFIG.pyodide_version}`;
-      versionBadge.value = `yaml-rs ${CONFIG.yaml_rs_version}`;
-
-      setBusy(true, "Loading Pyodide");
-      const pyodideBase = `https://cdn.jsdelivr.net/pyodide/v${CONFIG.pyodide_version}/full/`;
-      await loadScript(`${pyodideBase}pyodide.js`);
-
-      if (!window.loadPyodide) {
-        throw new Error("loadPyodide is unavailable after script load");
+    runtimeWorker = new Worker(new URL("./pyodide.worker.ts", import.meta.url), {
+      type: "module",
+    });
+    runtimeWorker.addEventListener("message", ({ data }) => {
+      if (data.type === "status") {
+        setBusy(data.busy, data.label);
+        if (data.engineBadge) engineBadge.value = data.engineBadge;
+        if (data.configBadge) configBadge.value = data.configBadge;
+        if (data.engineTone) engineTone.value = data.engineTone;
+        return;
       }
 
-      pyodide = await window.loadPyodide({ indexURL: pyodideBase });
-      const pyVersion = await pyodide.runPythonAsync(
-        "import sys; f'{sys.version_info.major}.{sys.version_info.minor}'",
-      );
-      configBadge.value = `Python ${pyVersion}`;
-      setBusy(true, "Loading micropip");
-      await pyodide.loadPackage("micropip");
-
-      setBusy(true, "Installing yaml-rs");
-      await installWheel();
-
-      engineTone.value = "ready";
-      await renderYaml();
-    } catch (error) {
-      renderError.value = true;
-      output.value = String(error);
-      renderOutputHighlight(String(error));
-      engineBadge.value = "Boot failed";
-      engineTone.value = "warn";
-    } finally {
-      setBusy(false, "Idle");
-    }
+      if (data.type === "result" || data.type === "error") {
+        renderError.value = data.type === "error";
+        output.value = data.output;
+        if (data.type === "result") {
+          renderOutputHighlight(data.output);
+        }
+        if (data.engineBadge) engineBadge.value = data.engineBadge;
+        if (data.engineTone) engineTone.value = data.engineTone;
+      }
+    });
+    runtimeWorker.postMessage({
+      type: "boot",
+      pyodideVersion: CONFIG.pyodide_version,
+      yamlRsVersion: CONFIG.yaml_rs_version,
+      yaml: yamlInput.value,
+    });
   }
 
   function setSplitFromPointer(clientX: number, clientY: number): void {
@@ -586,20 +475,24 @@ await micropip.install("${wheelUrl}")
     scheduleHighlight();
     window.clearTimeout(renderTimer);
     renderTimer = window.setTimeout(() => {
-      void renderYaml();
+      renderYaml();
     }, 120);
   });
 
-  onMounted(async () => {
+  onMounted(() => {
     theme.value = readTheme();
     applyTheme(theme.value);
     restoreSplitRatio();
-    const sharedYaml = await readSharedYaml();
-    if (sharedYaml !== null) {
-      yamlInput.value = sharedYaml;
-    }
     scheduleHighlight();
-    void boot();
+
+    void (async () => {
+      const sharedYaml = await readSharedYaml();
+      if (sharedYaml !== null) {
+        yamlInput.value = sharedYaml;
+        scheduleHighlight();
+      }
+      boot();
+    })();
 
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
@@ -619,13 +512,13 @@ await micropip.install("${wheelUrl}")
     if (highlightFrame) {
       window.cancelAnimationFrame(highlightFrame);
     }
+    runtimeWorker?.terminate();
   });
 
   return {
     busy,
     busyLabel,
     configBadge,
-    configTone,
     versionBadge,
     copyText,
     dividerRef,

@@ -1,5 +1,8 @@
-# https://pypi.org/project/yaml-rs (PyEmscripten wasm32)
+# https://pypi.org/project/yaml-rs
+#
+# yaml_rs-<version>-cp313-cp313-pyemscripten_2025_0_wasm32.whl
+# yaml_rs-<version>-cp314-cp314-pyemscripten_2026_0_wasm32.whl
 yaml_rs_version = "0.1.4"
 
 # https://github.com/pyodide/pyodide
-pyodide_version = "0.29.4"
+pyodide_version = "314.0.2"

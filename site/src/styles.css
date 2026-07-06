@@ -3,14 +3,11 @@
 :root {
   --bg: #11121a;
   --bg-2: #171925;
-  --panel: rgba(18, 20, 29, 0.88);
-  --panel-2: rgba(21, 24, 35, 0.94);
   --panel-3: rgba(17, 19, 28, 0.98);
   --text: #eef1ff;
   --muted: #989fbd;
   --line: rgba(125, 122, 173, 0.18);
   --accent: #8b7dff;
-  --accent-2: #7060ee;
   --accent-3: #9c8cff;
   --ok: #57d89a;
   --warn: #ff7b98;
@@ -226,8 +223,6 @@ textarea {
 :root[data-theme="light"] {
   --bg: #ebeef8;
   --bg-2: #e2e6f4;
-  --panel: rgba(255, 255, 255, 0.96);
-  --panel-2: rgba(248, 250, 255, 0.98);
   --panel-3: rgba(244, 247, 255, 0.99);
   --text: #14182a;
   --muted: #4e5678;
